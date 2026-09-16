@@ -1,0 +1,33 @@
+# Private environment variables and secrets
+.env
+.env.local
+.env.production
+
+# Local configuration containing passwords or API keys
+config.local.php
+database.local.php
+
+# Dependencies
+/vendor/
+/node_modules/
+
+# Editor settings
+.vscode/
+.idea/
+
+# Logs and temporary files
+*.log
+/tmp/
+/cache/
+
+# Backups and exported databases
+/backups/
+*.sql
+!database/schema.sql
+*.zip
+
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+desktop.ini
