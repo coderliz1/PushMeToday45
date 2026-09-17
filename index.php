@@ -4,23 +4,19 @@ declare(strict_types=1);
 
 header('X-Robots-Tag: noindex, nofollow', true);
 
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="noindex, nofollow">
-    <title>PushMeToday45</title>
+$page = $_GET['page'] ?? 'home';
 
-    <link rel="stylesheet" href="assets/css/style.css">
-</head>
-<body>
-    <main>
-        <h1>PushMeToday45</h1>
-        <p>PHP is working. The app build has officially started!</p>
-    </main>
+$routes = [
+    'home' => 'home.php',
+    'check-in' => 'check-in.php',
+    'sos' => 'sos.php',
+    'progress' => 'progress.php',
+    'future-me' => 'future-me.php',
+];
 
-    <script src="assets/js/app.js"></script>
-</body>
-</html>
+if (!array_key_exists($page, $routes)) {
+    header('Location: /?page=home');
+    exit;
+}
+
+require __DIR__ . '/pages/' . $routes[$page];
