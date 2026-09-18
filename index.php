@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 header('X-Robots-Tag: noindex, nofollow', true);
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0', true);
+header('Pragma: no-cache', true);
+header('Expires: 0', true);
 
 $page = $_GET['page'] ?? 'home';
 
