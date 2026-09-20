@@ -288,9 +288,280 @@ if ($selectedCategory === 'scale') {
 }
 
 
+$resultsChallengeName = null;
+$resultsChallengeDay = 0;
+$resultsTargetDays = 0;
+$resultsWeightChange = null;
+$resultsWaistChange = null;
+$resultsStrengthWorkouts = 0;
+$resultsCheckInCount = 0;
+
+if ($selectedCategory === 'results') {
+    $resultsChallenge = db()
+        ->query(
+            "SELECT *
+             FROM challenges
+             WHERE status = 'active'
+             ORDER BY start_date DESC
+             LIMIT 1"
+        )
+        ->fetch();
+
+    if ($resultsChallenge) {
+        $resultsChallengeName = $resultsChallenge['name'];
+        $resultsTargetDays =
+            (int) $resultsChallenge['target_days'];
+
+        $timezone = new DateTimeZone('America/New_York');
+        $today = new DateTimeImmutable('today', $timezone);
+
+        $challengeStart = new DateTimeImmutable(
+            $resultsChallenge['start_date'],
+            $timezone
+        );
+
+        $challengeEnd = new DateTimeImmutable(
+            $resultsChallenge['end_date'],
+            $timezone
+        );
+
+        if ($today < $challengeStart) {
+            $resultsChallengeDay = 0;
+        } elseif ($today > $challengeEnd) {
+            $resultsChallengeDay = $resultsTargetDays;
+        } else {
+            $calendarDay =
+                (int) $challengeStart
+                    ->diff($today)
+                    ->format('%a') + 1;
+
+            $resultsChallengeDay = min(
+                $calendarDay,
+                $resultsTargetDays
+            );
+        }
+
+        $resultsStatement = db()->prepare(
+            'SELECT
+                check_in_date,
+                weight,
+                waist,
+                activities
+             FROM check_ins
+             WHERE check_in_date
+                BETWEEN :start_date AND :end_date
+             ORDER BY check_in_date ASC'
+        );
+
+        $resultsStatement->execute([
+            'start_date' => $resultsChallenge['start_date'],
+            'end_date' => $resultsChallenge['end_date'],
+        ]);
+
+        $resultsCheckIns = $resultsStatement->fetchAll();
+        $resultsCheckInCount = count($resultsCheckIns);
+
+        $challengeWeights = [];
+        $challengeWaists = [];
+
+        foreach ($resultsCheckIns as $resultsCheckIn) {
+            if ($resultsCheckIn['weight'] !== null) {
+                $challengeWeights[] =
+                    (float) $resultsCheckIn['weight'];
+            }
+
+            if ($resultsCheckIn['waist'] !== null) {
+                $challengeWaists[] =
+                    (float) $resultsCheckIn['waist'];
+            }
+
+            $activities = array_filter(
+                array_map(
+                    'trim',
+                    explode(
+                        ',',
+                        (string) $resultsCheckIn['activities']
+                    )
+                )
+            );
+
+            if (in_array('strength', $activities, true)) {
+                $resultsStrengthWorkouts++;
+            }
+        }
+
+        if (count($challengeWeights) >= 2) {
+            $resultsWeightChange =
+                $challengeWeights[
+                    count($challengeWeights) - 1
+                ] - $challengeWeights[0];
+        }
+
+        if (count($challengeWaists) >= 2) {
+            $resultsWaistChange =
+                $challengeWaists[
+                    count($challengeWaists) - 1
+                ] - $challengeWaists[0];
+        }
+    }
+}
+
+
 require dirname(__DIR__) . '/includes/header.php';
 
 ?>
+
+
+<?php if ($selectedCategory === 'results'): ?>
+
+    <section class="sos-heading">
+        <a class="sos-back-link" href="/?page=sos">
+            ← Back to SOS choices
+        </a>
+
+        <p class="eyebrow">Look at the Evidence</p>
+        <h1>You may be making more progress than you feel.</h1>
+
+        <?php if ($resultsChallengeName !== null): ?>
+            <p class="sos-introduction">
+                <?= htmlspecialchars(
+                    $resultsChallengeName,
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>
+            </p>
+        <?php endif; ?>
+    </section>
+
+    <?php if ($resultsChallengeName === null): ?>
+
+        <section class="sos-intervention-card sos-action-card">
+            <p class="card-label">No Active Challenge</p>
+
+            <p class="sos-intervention-text">
+                There is no active challenge available to calculate
+                right now.
+            </p>
+        </section>
+
+    <?php else: ?>
+
+        <section class="sos-results-grid">
+            <article class="sos-result-stat sos-result-day">
+                <span>Challenge Day</span>
+
+                <strong>
+                    <?= $resultsChallengeDay ?>
+                    /
+                    <?= $resultsTargetDays ?>
+                </strong>
+
+                <small>You are still in it.</small>
+            </article>
+
+            <article class="sos-result-stat sos-result-weight">
+                <span>Weight Change</span>
+
+                <strong>
+                    <?php if ($resultsWeightChange !== null): ?>
+                        <?= $resultsWeightChange > 0 ? '+' : '' ?>
+                        <?= number_format(
+                            $resultsWeightChange,
+                            1
+                        ) ?> lb
+                    <?php else: ?>
+                        —
+                    <?php endif; ?>
+                </strong>
+
+                <small>
+                    <?= $resultsWeightChange !== null
+                        ? 'First to latest challenge measurement'
+                        : 'Two measurements are needed' ?>
+                </small>
+            </article>
+
+            <article class="sos-result-stat sos-result-waist">
+                <span>Waist Change</span>
+
+                <strong>
+                    <?php if ($resultsWaistChange !== null): ?>
+                        <?= $resultsWaistChange > 0 ? '+' : '' ?>
+                        <?= number_format(
+                            $resultsWaistChange,
+                            1
+                        ) ?> in
+                    <?php else: ?>
+                        —
+                    <?php endif; ?>
+                </strong>
+
+                <small>
+                    <?= $resultsWaistChange !== null
+                        ? 'First to latest challenge measurement'
+                        : 'Two measurements are needed' ?>
+                </small>
+            </article>
+
+            <article class="sos-result-stat sos-result-strength">
+                <span>Strength Workouts</span>
+                <strong><?= $resultsStrengthWorkouts ?></strong>
+                <small>Logged during this challenge</small>
+            </article>
+
+            <article class="sos-result-stat sos-result-checkins">
+                <span>Check-Ins</span>
+                <strong><?= $resultsCheckInCount ?></strong>
+                <small>Times you chose to show up</small>
+            </article>
+        </section>
+
+    <?php endif; ?>
+
+    <section class="sos-intervention-card sos-ai-card">
+        <p class="card-label">Your Push</p>
+
+        <p class="sos-intervention-text">
+            Progress is not limited to what the mirror or scale
+            shows today. Repeated actions are evidence that you are
+            building something—even before every result becomes obvious.
+        </p>
+    </section>
+
+    <section class="sos-intervention-card sos-why-card">
+        <p class="card-label">🧠 Why This Works</p>
+
+        <p class="sos-intervention-text">
+            Looking at several kinds of progress fights the
+            all-or-nothing belief that only one number counts.
+        </p>
+    </section>
+
+    <section class="sos-intervention-card sos-fact-card">
+        <p class="card-label">💡 Real-Ass Fact</p>
+
+        <p class="sos-intervention-text">
+            Body weight, waist measurements, fitness, habits, and
+            consistency can change at different speeds. One measure
+            can appear stuck while another is improving.
+        </p>
+    </section>
+
+    <div class="sos-intervention-actions">
+        <a class="sos-good-button" href="/?page=check-in">
+            ✅ Add a Check-In
+        </a>
+
+        <a class="sos-secondary-button" href="/?page=progress">
+            View Full Progress
+        </a>
+    </div>
+
+    <?php require dirname(__DIR__) . '/includes/footer.php'; ?>
+    <?php return; ?>
+
+<?php endif; ?>
+
 
 
 <?php if ($selectedCategory === 'scale'): ?>

@@ -1200,3 +1200,64 @@ a {
     font-weight: 700;
     line-height: 1.45;
 }
+
+
+/* SOS RESULTS INTERVENTION */
+
+.sos-results-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.sos-result-stat {
+    display: grid;
+    gap: 8px;
+    min-height: 132px;
+    padding: 17px 14px;
+    border-radius: 20px;
+    box-shadow: 0 8px 20px rgba(72, 52, 68, 0.06);
+}
+
+.sos-result-day {
+    background: #eee5fb;
+}
+
+.sos-result-weight {
+    background: #fce4ef;
+}
+
+.sos-result-waist {
+    background: #e3effb;
+}
+
+.sos-result-strength {
+    background: #e2f4ec;
+}
+
+.sos-result-checkins {
+    grid-column: 1 / -1;
+    min-height: auto;
+    background: #fceddf;
+}
+
+.sos-result-stat span {
+    color: #6f5d6b;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.sos-result-stat strong {
+    color: #332a32;
+    font-size: 1.45rem;
+    line-height: 1.15;
+}
+
+.sos-result-stat small {
+    color: #716570;
+    font-size: 0.72rem;
+    line-height: 1.35;
+}
