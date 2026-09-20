@@ -32,6 +32,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $allowedMoods = ['great', 'good', 'okay', 'struggling'];
     $mood = trim((string) ($_POST['mood'] ?? ''));
 
+    $allowedPeriodStatuses = ['none', 'started', 'ongoing', 'ended'];
+    $periodStatus = trim((string) ($_POST['period_status'] ?? ''));
+
     $dateObject = DateTime::createFromFormat('Y-m-d', $checkInDate);
 
     if (
@@ -64,6 +67,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Please choose a valid mood.';
     }
 
+    if (
+    $periodStatus !== '' &&
+    !in_array($periodStatus, $allowedPeriodStatuses, true)
+    ) {
+    $errors[] = 'Please choose a valid cycle status.';
+    }
+
     if (strlen($notes) > 2000) {
         $errors[] = 'Notes must be 2,000 characters or fewer.';
     }
@@ -79,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         steps,
                         activities,
                         mood,
+                        period_status,
                         notes
                     )
                  VALUES
@@ -89,6 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         :steps,
                         :activities,
                         :mood,
+                        :period_status,
                         :notes
                     )
                  ON DUPLICATE KEY UPDATE
@@ -97,6 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     steps = VALUES(steps),
                     activities = VALUES(activities),
                     mood = VALUES(mood),
+                    period_status = VALUES(period_status),
                     notes = VALUES(notes)'
             );
 
@@ -107,6 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'steps' => $stepsInput !== '' ? (int) $stepsInput : null,
                 'activities' => $activities !== [] ? implode(', ', $activities) : null,
                 'mood' => $mood !== '' ? $mood : null,
+                'period_status' => $periodStatus !== '' ? $periodStatus : null,
                 'notes' => $notes !== '' ? $notes : null,
             ]);
 
@@ -281,6 +295,54 @@ require dirname(__DIR__) . '/includes/header.php';
             </label>
         </div>
 
+
+        <div class="cycle-section">
+    <div class="section-heading">
+        <div>
+            <p class="card-label">Cycle</p>
+            <h2>Period status</h2>
+        </div>
+    </div>
+
+    <div class="activity-options">
+        <label class="choice-chip">
+            <input
+                type="radio"
+                name="period_status"
+                value="none"
+                checked
+            >
+            <span>No Period</span>
+        </label>
+
+        <label class="choice-chip">
+            <input
+                type="radio"
+                name="period_status"
+                value="started"
+            >
+            <span>Started Today</span>
+        </label>
+
+        <label class="choice-chip">
+            <input
+                type="radio"
+                name="period_status"
+                value="ongoing"
+            >
+            <span>Period Ongoing</span>
+        </label>
+
+        <label class="choice-chip">
+            <input
+                type="radio"
+                name="period_status"
+                value="ended"
+            >
+            <span>Ended Today</span>
+        </label>
+    </div>
+</div>
         <div class="field-group notes-field">
             <label for="notes">Notes <small>Optional</small></label>
             <textarea
