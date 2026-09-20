@@ -1,0 +1,18 @@
+CREATE TABLE check_ins (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    check_in_date DATE NOT NULL,
+    weight DECIMAL(5,1) DEFAULT NULL,
+    waist DECIMAL(5,1) DEFAULT NULL,
+    steps INT UNSIGNED DEFAULT NULL,
+    activities VARCHAR(255) DEFAULT NULL,
+    mood VARCHAR(20) DEFAULT NULL,
+    notes TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+    UNIQUE KEY unique_check_in_date (check_in_date)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
