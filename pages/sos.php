@@ -3,6 +3,8 @@
 $pageTitle = 'I Need Help | PushMeToday45';
 $activePage = 'sos';
 
+require_once dirname(__DIR__) . '/includes/functions.php';
+
 $allowedCategories = [
     'cheat',
     'lazy',
@@ -205,9 +207,208 @@ if (
     $currentIntervention = $cheatInterventions[$cheatReason];
 }
 
+
+$latestScaleDate = null;
+$latestScaleChange = null;
+$sevenDayWeightTrend = null;
+$scaleMeasurementCount = 0;
+$cycleMayAffectScale = false;
+
+if ($selectedCategory === 'scale') {
+    $scaleStatement = db()->query(
+        'SELECT
+            check_in_date,
+            weight,
+            period_status
+         FROM check_ins
+         WHERE weight IS NOT NULL
+         ORDER BY check_in_date DESC
+         LIMIT 60'
+    );
+
+    $scaleMeasurements = $scaleStatement->fetchAll();
+    $scaleMeasurementCount = count($scaleMeasurements);
+
+    if ($scaleMeasurementCount >= 1) {
+        $latestMeasurement = $scaleMeasurements[0];
+        $latestScaleDate = $latestMeasurement['check_in_date'];
+
+        $cycleMayAffectScale = in_array(
+            $latestMeasurement['period_status'] ?? '',
+            ['started', 'ongoing'],
+            true
+        );
+    }
+
+    if ($scaleMeasurementCount >= 2) {
+        $latestScaleChange =
+            (float) $scaleMeasurements[0]['weight'] -
+            (float) $scaleMeasurements[1]['weight'];
+    }
+
+    $timezone = new DateTimeZone('America/New_York');
+    $today = new DateTimeImmutable('today', $timezone);
+    $sevenDayStart = $today->modify('-6 days');
+
+    $sevenDayMeasurements = array_values(
+        array_filter(
+            $scaleMeasurements,
+            static function (array $measurement) use (
+                $sevenDayStart,
+                $today,
+                $timezone
+            ): bool {
+                $measurementDate = new DateTimeImmutable(
+                    $measurement['check_in_date'],
+                    $timezone
+                );
+
+                return
+                    $measurementDate >= $sevenDayStart &&
+                    $measurementDate <= $today;
+            }
+        )
+    );
+
+    if (count($sevenDayMeasurements) >= 2) {
+        $newestSevenDayWeight =
+            (float) $sevenDayMeasurements[0]['weight'];
+
+        $oldestSevenDayMeasurement =
+            $sevenDayMeasurements[
+                count($sevenDayMeasurements) - 1
+            ];
+
+        $oldestSevenDayWeight =
+            (float) $oldestSevenDayMeasurement['weight'];
+
+        $sevenDayWeightTrend =
+            $newestSevenDayWeight - $oldestSevenDayWeight;
+    }
+}
+
+
 require dirname(__DIR__) . '/includes/header.php';
 
 ?>
+
+
+<?php if ($selectedCategory === 'scale'): ?>
+
+    <section class="sos-heading">
+        <a class="sos-back-link" href="/?page=sos">
+            ← Back to SOS choices
+        </a>
+
+        <p class="eyebrow">Zoom Out</p>
+        <h1>The scale does not get the final word.</h1>
+
+        <?php if ($latestScaleDate !== null): ?>
+            <p class="sos-introduction">
+                Latest measurement:
+                <?= htmlspecialchars(
+                    date(
+                        'M j, Y',
+                        strtotime($latestScaleDate)
+                    ),
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>
+            </p>
+        <?php endif; ?>
+    </section>
+
+    <section class="sos-scale-grid">
+        <article class="sos-scale-stat sos-scale-latest">
+            <span>Latest change</span>
+
+            <strong>
+                <?php if ($latestScaleChange !== null): ?>
+                    <?= $latestScaleChange > 0 ? '+' : '' ?>
+                    <?= number_format($latestScaleChange, 1) ?> lb
+                <?php else: ?>
+                    —
+                <?php endif; ?>
+            </strong>
+
+            <small>
+                <?= $latestScaleChange !== null
+                    ? 'Compared with your previous measurement'
+                    : 'Two measurements are needed' ?>
+            </small>
+        </article>
+
+        <article class="sos-scale-stat sos-scale-trend">
+            <span>7-day trend</span>
+
+            <strong>
+                <?php if ($sevenDayWeightTrend !== null): ?>
+                    <?= $sevenDayWeightTrend > 0 ? '+' : '' ?>
+                    <?= number_format($sevenDayWeightTrend, 1) ?> lb
+                <?php else: ?>
+                    —
+                <?php endif; ?>
+            </strong>
+
+            <small>
+                <?= $sevenDayWeightTrend !== null
+                    ? 'Oldest to newest measurement this week'
+                    : 'Not enough measurements this week' ?>
+            </small>
+        </article>
+    </section>
+
+    <section class="sos-intervention-card sos-ai-card">
+        <p class="card-label">Your Push</p>
+
+        <p class="sos-intervention-text">
+            A single scale reading is information—not a verdict.
+            Look at the direction over time, not one noisy number.
+        </p>
+    </section>
+
+    <section class="sos-intervention-card sos-why-card">
+        <p class="card-label">🧠 Why the Number Moves</p>
+
+        <p class="sos-intervention-text">
+            Daily weight can shift because of water, sodium,
+            carbohydrate intake, digestion, bowel movements,
+            soreness after exercise, and hormonal changes.
+        </p>
+
+        <?php if ($cycleMayAffectScale): ?>
+            <p class="sos-cycle-note">
+                Your latest check-in also shows that your period
+                started or is ongoing, which may contribute to
+                temporary water-weight changes.
+            </p>
+        <?php endif; ?>
+    </section>
+
+    <section class="sos-intervention-card sos-fact-card">
+        <p class="card-label">💡 Real-Ass Fact</p>
+
+        <p class="sos-intervention-text">
+            Short-term scale changes do not automatically represent
+            body-fat gain or loss. Trends across multiple measurements
+            are more useful than one isolated reading.
+        </p>
+    </section>
+
+    <div class="sos-intervention-actions">
+        <a class="sos-good-button" href="/?page=home">
+            ✅ I’m Good Now
+        </a>
+
+        <a class="sos-secondary-button" href="/?page=progress">
+            View My Progress
+        </a>
+    </div>
+
+    <?php require dirname(__DIR__) . '/includes/footer.php'; ?>
+    <?php return; ?>
+
+<?php endif; ?>
 
 
 <?php if ($currentStrugglePlan !== null): ?>
