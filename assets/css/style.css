@@ -1061,3 +1061,49 @@ a {
     outline: 3px solid rgba(176, 111, 151, 0.35);
     outline-offset: 3px;
 }
+
+/* SOS LAZY FLOW AND TIMER */
+
+.sos-big-instruction {
+    margin: 10px 0;
+    color: #332a32;
+    font-size: 1.55rem;
+    font-weight: 900;
+    line-height: 1.25;
+}
+
+.sos-timer-card {
+    padding: 28px 20px;
+    border: 1px solid rgba(113, 82, 105, 0.1);
+    border-radius: 24px;
+    background: linear-gradient(145deg, #eee5fb, #fce8f1);
+    box-shadow: 0 12px 28px rgba(72, 52, 68, 0.08);
+    text-align: center;
+}
+
+.sos-countdown {
+    margin: 20px 0 14px;
+    color: #6e4562;
+    font-size: clamp(3.5rem, 18vw, 5.5rem);
+    font-weight: 900;
+    letter-spacing: -0.05em;
+    line-height: 1;
+}
+
+.sos-timer-message {
+    max-width: 320px;
+    margin: 0 auto;
+    color: #5f515d;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+.sos-timer-outcomes {
+    display: grid;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.sos-timer-outcomes[hidden] {
+    display: none;
+}

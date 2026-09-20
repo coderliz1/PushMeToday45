@@ -41,6 +41,22 @@ $cravingDetail = trim(
 
 $cravingDetail = substr($cravingDetail, 0, 255);
 
+$allowedLazySteps = [
+    'shoes_on',
+    'start_timer',
+    'finish_workout',
+    'another_five',
+    'stopped',
+];
+
+$lazyStep = trim(
+    (string) ($_POST['lazy_step'] ?? '')
+);
+
+if (!in_array($lazyStep, $allowedLazySteps, true)) {
+    $lazyStep = '';
+}
+
 $cheatInterventions = [
     'hungry' => [
         'push' => 'If you are genuinely hungry, eating is not cheating. The goal is to make a choice that actually satisfies you.',
@@ -83,6 +99,272 @@ if (
 require dirname(__DIR__) . '/includes/header.php';
 
 ?>
+
+<?php if (
+    $selectedCategory === 'lazy' &&
+    $lazyStep === ''
+): ?>
+
+    <section class="sos-heading">
+        <a class="sos-back-link" href="/?page=sos">
+            ← Back to SOS choices
+        </a>
+
+        <p class="eyebrow">Lower the Barrier</p>
+        <h1>Don’t commit to the workout.</h1>
+
+        <p class="sos-introduction">
+            We are making this ridiculously easy.
+        </p>
+    </section>
+
+    <section class="sos-intervention-card sos-why-card">
+        <p class="card-label">Your Only Job</p>
+
+        <p class="sos-big-instruction">
+            Put your shoes on.
+        </p>
+
+        <p class="sos-intervention-text">
+            That’s it. You are not agreeing to a full workout.
+            You are only putting on your shoes.
+        </p>
+    </section>
+
+    <form method="post" action="/?page=sos">
+        <input
+            type="hidden"
+            name="sos_category"
+            value="lazy"
+        >
+
+        <button
+            class="sos-good-button"
+            type="submit"
+            name="lazy_step"
+            value="shoes_on"
+        >
+            👟 Shoes Are On
+        </button>
+    </form>
+
+    <?php require dirname(__DIR__) . '/includes/footer.php'; ?>
+    <?php return; ?>
+
+<?php endif; ?>
+
+<?php if (
+    $selectedCategory === 'lazy' &&
+    $lazyStep === 'shoes_on'
+): ?>
+
+    <section class="sos-heading">
+        <a class="sos-back-link" href="/?page=sos">
+            ← Back to SOS choices
+        </a>
+
+        <p class="eyebrow">Step One Complete</p>
+        <h1>Shoes are on. Nice.</h1>
+
+        <p class="sos-introduction">
+            Now give yourself only five minutes.
+        </p>
+    </section>
+
+    <section class="sos-intervention-card sos-action-card">
+        <p class="card-label">⚡ Do This Right Now</p>
+
+        <p class="sos-big-instruction">
+            Move for five minutes.
+        </p>
+
+        <p class="sos-intervention-text">
+            Walk, stretch, use the treadmill, or begin the first
+            part of your workout. You can stop after five minutes
+            without calling the day a failure.
+        </p>
+    </section>
+
+    <section class="sos-intervention-card sos-why-card">
+        <p class="card-label">🧠 Why This Works</p>
+
+        <p class="sos-intervention-text">
+            Starting requires more mental effort than continuing.
+            A tiny commitment lowers the barrier and creates momentum.
+        </p>
+    </section>
+
+    <form method="post" action="/?page=sos">
+        <input
+            type="hidden"
+            name="sos_category"
+            value="lazy"
+        >
+
+        <button
+            class="sos-good-button"
+            type="submit"
+            name="lazy_step"
+            value="start_timer"
+        >
+            ⏱️ Start 5-Minute Timer
+        </button>
+    </form>
+
+    <?php require dirname(__DIR__) . '/includes/footer.php'; ?>
+    <?php return; ?>
+
+<?php endif; ?>
+
+<?php if (
+    $selectedCategory === 'lazy' &&
+    in_array(
+        $lazyStep,
+        ['start_timer', 'another_five'],
+        true
+    )
+): ?>
+
+    <section class="sos-heading">
+        <a class="sos-back-link" href="/?page=sos">
+            ← Exit timer
+        </a>
+
+        <p class="eyebrow">Five-Minute Start</p>
+        <h1>Just keep moving.</h1>
+
+        <p class="sos-introduction">
+            You do not need to make any decisions until the timer ends.
+        </p>
+    </section>
+
+    <section class="sos-timer-card">
+        <p class="card-label">Time Remaining</p>
+
+        <div
+            id="sos-countdown"
+            class="sos-countdown"
+            data-seconds="300"
+            aria-live="polite"
+        >
+            05:00
+        </div>
+
+        <p id="sos-timer-message" class="sos-timer-message">
+            Start moving. You only promised five minutes.
+        </p>
+    </section>
+
+    <form
+        id="sos-timer-outcomes"
+        class="sos-timer-outcomes"
+        method="post"
+        action="/?page=sos"
+        hidden
+    >
+        <input
+            type="hidden"
+            name="sos_category"
+            value="lazy"
+        >
+
+        <button
+            class="sos-good-button"
+            type="submit"
+            name="lazy_step"
+            value="finish_workout"
+        >
+            🔥 Finish My Workout
+        </button>
+
+        <button
+            class="sos-secondary-button"
+            type="submit"
+            name="lazy_step"
+            value="another_five"
+        >
+            👍 Another Five Minutes
+        </button>
+
+        <button
+            class="sos-secondary-button"
+            type="submit"
+            name="lazy_step"
+            value="stopped"
+        >
+            🏁 I’m Stopping, but I Showed Up
+        </button>
+    </form>
+
+    <?php require dirname(__DIR__) . '/includes/footer.php'; ?>
+    <?php return; ?>
+
+<?php endif; ?>
+
+<?php if (
+    $selectedCategory === 'lazy' &&
+    in_array(
+        $lazyStep,
+        ['finish_workout', 'stopped'],
+        true
+    )
+): ?>
+
+    <section class="sos-heading">
+        <a class="sos-back-link" href="/?page=sos">
+            ← Back to SOS choices
+        </a>
+
+        <p class="eyebrow">You Showed Up</p>
+
+        <?php if ($lazyStep === 'finish_workout'): ?>
+            <h1>Momentum unlocked. 🔥</h1>
+
+            <p class="sos-introduction">
+                You did not wait for motivation. You created it by starting.
+            </p>
+        <?php else: ?>
+            <h1>Five minutes still counts. 🏁</h1>
+
+            <p class="sos-introduction">
+                You kept the promise you made. That is a successful day,
+                even if you stop here.
+            </p>
+        <?php endif; ?>
+    </section>
+
+    <section class="sos-intervention-card sos-fact-card">
+        <p class="card-label">💡 Real-Ass Fact</p>
+
+        <?php if ($lazyStep === 'finish_workout'): ?>
+            <p class="sos-intervention-text">
+                Action often creates motivation after you begin.
+                Motivation does not always need to come first.
+            </p>
+        <?php else: ?>
+            <p class="sos-intervention-text">
+                Completing a small commitment builds self-trust.
+                Five intentional minutes are better than abandoning
+                the day completely.
+            </p>
+        <?php endif; ?>
+    </section>
+
+    <div class="sos-intervention-actions">
+        <a class="sos-good-button" href="/?page=home">
+            ✅ I’m Good Now
+        </a>
+
+        <a class="sos-secondary-button" href="/?page=sos">
+            Return to SOS
+        </a>
+    </div>
+
+    <?php require dirname(__DIR__) . '/includes/footer.php'; ?>
+    <?php return; ?>
+
+<?php endif; ?>
+
 
 <?php if ($currentIntervention !== null): ?>
 
