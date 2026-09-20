@@ -591,3 +591,28 @@ a {
 .save-button:active {
     transform: translateY(1px);
 }
+
+.status-message {
+    margin: 0 0 1rem;
+    padding: 1rem;
+    border-radius: 16px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+.status-message ul {
+    margin: 0.5rem 0 0;
+    padding-left: 1.25rem;
+}
+
+.status-success {
+    color: #285943;
+    background: #e5f8ee;
+    border: 1px solid #bce9cf;
+}
+
+.status-error {
+    color: #842f45;
+    background: #fff0f3;
+    border: 1px solid #f4c4cf;
+}
