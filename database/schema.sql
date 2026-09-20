@@ -48,3 +48,26 @@ INSERT INTO challenges (
     '2026-10-30',
     'active'
 );
+
+CREATE TABLE sos_interactions (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    challenge_id INT UNSIGNED DEFAULT NULL,
+    category VARCHAR(50) NOT NULL,
+    subcategory VARCHAR(50) DEFAULT NULL,
+    motivation_style VARCHAR(20) DEFAULT NULL,
+    user_detail VARCHAR(255) DEFAULT NULL,
+    ai_push TEXT,
+    immediate_action TEXT,
+    why_it_works TEXT,
+    real_fact TEXT,
+    outcome VARCHAR(30) DEFAULT NULL,
+    favorite TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+    INDEX sos_category (category),
+    INDEX sos_created_at (created_at)
+)
+ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
