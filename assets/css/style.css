@@ -1107,3 +1107,40 @@ a {
 .sos-timer-outcomes[hidden] {
     display: none;
 }
+
+
+/* SOS MINIMUM VIABLE DAY */
+
+.sos-mission-list {
+    display: grid;
+    gap: 12px;
+    margin: 16px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.sos-mission-list li {
+    position: relative;
+    padding: 13px 14px 13px 44px;
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.7);
+    color: #433942;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.sos-mission-list li::before {
+    content: "✓";
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    display: grid;
+    width: 22px;
+    height: 22px;
+    place-items: center;
+    border-radius: 50%;
+    background: #8b6680;
+    color: #ffffff;
+    font-size: 0.75rem;
+    transform: translateY(-50%);
+}

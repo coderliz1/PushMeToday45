@@ -57,6 +57,29 @@ if (!in_array($lazyStep, $allowedLazySteps, true)) {
     $lazyStep = '';
 }
 
+$allowedStruggleReasons = [
+    'physically_tired',
+    'overwhelmed',
+    'bad_mood',
+    'food_sideways',
+    'missed_workout',
+    'everything',
+];
+
+$struggleReason = trim(
+    (string) ($_POST['struggle_reason'] ?? '')
+);
+
+if (
+    !in_array(
+        $struggleReason,
+        $allowedStruggleReasons,
+        true
+    )
+) {
+    $struggleReason = '';
+}
+
 $cheatInterventions = [
     'hungry' => [
         'push' => 'If you are genuinely hungry, eating is not cheating. The goal is to make a choice that actually satisfies you.',
@@ -87,6 +110,92 @@ $cheatInterventions = [
     ],
 ];
 
+
+$strugglePlans = [
+    'physically_tired' => [
+        'push' => 'Your body may need a lower gear today, not punishment.',
+        'mission' => [
+            'Drink a full glass of water.',
+            'Eat one reasonable next meal.',
+            'Do five minutes of gentle movement or stretching.',
+            'Give yourself permission to rest afterward.',
+        ],
+        'why' => 'Scaling the plan down protects consistency without ignoring what your body is telling you.',
+        'fact' => 'Fatigue can reduce decision-making and self-control, so a simpler plan is often easier to follow.',
+    ],
+
+    'overwhelmed' => [
+        'push' => 'You do not need to solve the whole day. Handle the next small thing.',
+        'mission' => [
+            'Drink some water.',
+            'Choose one task that takes under ten minutes.',
+            'Eat one reasonable next meal.',
+            'Take five slow breaths before choosing what comes next.',
+        ],
+        'why' => 'Reducing the number of decisions lowers mental overload and makes action feel manageable.',
+        'fact' => 'Breaking a large problem into smaller actions can reduce avoidance and improve follow-through.',
+    ],
+
+    'bad_mood' => [
+        'push' => 'A bad mood is real, but it does not get to make every decision today.',
+        'mission' => [
+            'Change rooms or step outside.',
+            'Move for ten minutes.',
+            'Drink some water.',
+            'Do one thing that makes tomorrow easier.',
+        ],
+        'why' => 'Changing your environment and moving your body interrupts the emotional loop.',
+        'fact' => 'Even brief physical activity can produce an immediate improvement in mood for many people.',
+    ],
+
+    'food_sideways' => [
+        'push' => 'One meal did not ruin anything. The next choice still belongs to you.',
+        'mission' => [
+            'Do not skip your next meal as punishment.',
+            'Choose a normal, reasonable next meal.',
+            'Drink some water.',
+            'Continue the day without trying to “make up” for it.',
+        ],
+        'why' => 'Returning to your normal plan stops one imperfect choice from becoming an all-day spiral.',
+        'fact' => 'Long-term progress reflects repeated patterns, not one meal or snack.',
+    ],
+
+    'missed_workout' => [
+        'push' => 'The planned workout may be gone, but the entire day is not.',
+        'mission' => [
+            'Do ten minutes of any movement.',
+            'Stretch one tight area.',
+            'Prepare what you need for the next workout.',
+            'Count the recovery, then move on.',
+        ],
+        'why' => 'A smaller backup plan protects the habit even when the original plan fails.',
+        'fact' => 'Consistency is easier to maintain when a habit has a smaller fallback version.',
+    ],
+
+    'everything' => [
+        'push' => 'Today does not need to become impressive. It only needs to stop getting worse.',
+        'mission' => [
+            'Drink a full glass of water.',
+            'Eat one reasonable next meal.',
+            'Move gently for five minutes.',
+            'Check in, then let today be enough.',
+        ],
+        'why' => 'A minimum viable day replaces perfection with a few actions you can still control.',
+        'fact' => 'Completing small actions can rebuild self-efficacy—the belief that you can influence what happens next.',
+    ],
+];
+
+$currentStrugglePlan = null;
+
+if (
+    $selectedCategory === 'struggling' &&
+    $struggleReason !== ''
+) {
+    $currentStrugglePlan = $strugglePlans[$struggleReason];
+}
+
+
+
 $currentIntervention = null;
 
 if (
@@ -99,6 +208,186 @@ if (
 require dirname(__DIR__) . '/includes/header.php';
 
 ?>
+
+
+<?php if ($currentStrugglePlan !== null): ?>
+
+    <section class="sos-heading">
+        <a class="sos-back-link" href="/?page=sos">
+            ← Back to SOS choices
+        </a>
+
+        <p class="eyebrow">Minimum Viable Day</p>
+        <h1>We are saving the day—not perfecting it.</h1>
+    </section>
+
+    <section class="sos-intervention-card sos-ai-card">
+        <p class="card-label">Your Push</p>
+
+        <p class="sos-intervention-text">
+            <?= htmlspecialchars(
+                $currentStrugglePlan['push'],
+                ENT_QUOTES,
+                'UTF-8'
+            ) ?>
+        </p>
+    </section>
+
+    <section class="sos-intervention-card sos-action-card">
+        <p class="card-label">⚡ Today’s Mission</p>
+
+        <ul class="sos-mission-list">
+            <?php foreach (
+                $currentStrugglePlan['mission'] as $missionItem
+            ): ?>
+                <li>
+                    <?= htmlspecialchars(
+                        $missionItem,
+                        ENT_QUOTES,
+                        'UTF-8'
+                    ) ?>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </section>
+
+    <section class="sos-intervention-card sos-why-card">
+        <p class="card-label">🧠 Why This Works</p>
+
+        <p class="sos-intervention-text">
+            <?= htmlspecialchars(
+                $currentStrugglePlan['why'],
+                ENT_QUOTES,
+                'UTF-8'
+            ) ?>
+        </p>
+    </section>
+
+    <section class="sos-intervention-card sos-fact-card">
+        <p class="card-label">💡 Real-Ass Fact</p>
+
+        <p class="sos-intervention-text">
+            <?= htmlspecialchars(
+                $currentStrugglePlan['fact'],
+                ENT_QUOTES,
+                'UTF-8'
+            ) ?>
+        </p>
+    </section>
+
+    <div class="sos-intervention-actions">
+        <a class="sos-good-button" href="/?page=home">
+            ✅ I Have a Plan
+        </a>
+
+        <a class="sos-secondary-button" href="/?page=sos">
+            Return to SOS
+        </a>
+    </div>
+
+    <?php require dirname(__DIR__) . '/includes/footer.php'; ?>
+    <?php return; ?>
+
+<?php endif; ?>
+
+
+
+<?php if (
+    $selectedCategory === 'struggling' &&
+    $struggleReason === ''
+): ?>
+
+    <section class="sos-heading">
+        <a class="sos-back-link" href="/?page=sos">
+            ← Back to SOS choices
+        </a>
+
+        <p class="eyebrow">Save the Day</p>
+        <h1>What kind of struggle is this?</h1>
+
+        <p class="sos-introduction">
+            Pick the answer that feels closest right now.
+        </p>
+    </section>
+
+    <form
+        class="sos-follow-up-list"
+        method="post"
+        action="/?page=sos"
+    >
+        <input
+            type="hidden"
+            name="sos_category"
+            value="struggling"
+        >
+
+        <button
+            class="sos-follow-up-choice"
+            type="submit"
+            name="struggle_reason"
+            value="physically_tired"
+        >
+            <span>😴</span>
+            <strong>Physically tired</strong>
+        </button>
+
+        <button
+            class="sos-follow-up-choice"
+            type="submit"
+            name="struggle_reason"
+            value="overwhelmed"
+        >
+            <span>🧠</span>
+            <strong>Mentally overwhelmed</strong>
+        </button>
+
+        <button
+            class="sos-follow-up-choice"
+            type="submit"
+            name="struggle_reason"
+            value="bad_mood"
+        >
+            <span>😔</span>
+            <strong>Bad mood</strong>
+        </button>
+
+        <button
+            class="sos-follow-up-choice"
+            type="submit"
+            name="struggle_reason"
+            value="food_sideways"
+        >
+            <span>🍕</span>
+            <strong>Food went sideways</strong>
+        </button>
+
+        <button
+            class="sos-follow-up-choice"
+            type="submit"
+            name="struggle_reason"
+            value="missed_workout"
+        >
+            <span>🏋️</span>
+            <strong>Missed workout</strong>
+        </button>
+
+        <button
+            class="sos-follow-up-choice"
+            type="submit"
+            name="struggle_reason"
+            value="everything"
+        >
+            <span>💩</span>
+            <strong>Everything</strong>
+        </button>
+    </form>
+
+    <?php require dirname(__DIR__) . '/includes/footer.php'; ?>
+    <?php return; ?>
+
+<?php endif; ?>
+
+
 
 <?php if (
     $selectedCategory === 'lazy' &&
