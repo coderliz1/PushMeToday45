@@ -969,3 +969,95 @@ a {
     border-color: #b16f97;
     outline: 3px solid rgba(177, 111, 151, 0.14);
 }
+
+
+/* SOS INTERVENTION RESULT */
+
+.sos-selected-detail {
+    margin-top: 16px;
+    padding: 12px 15px;
+    border-radius: 14px;
+    background: #f5edf5;
+    color: #645764;
+}
+
+.sos-intervention-card {
+    margin-bottom: 14px;
+    padding: 20px;
+    border: 1px solid rgba(77, 57, 73, 0.08);
+    border-radius: 22px;
+    box-shadow: 0 9px 22px rgba(72, 52, 68, 0.06);
+}
+
+.sos-ai-card {
+    background: #fce4ef;
+}
+
+.sos-action-card {
+    background: #fff0d9;
+}
+
+.sos-why-card {
+    background: #eee5fb;
+}
+
+.sos-fact-card {
+    background: #e2f4ec;
+}
+
+.sos-intervention-text {
+    margin: 8px 0 0;
+    color: #3e343d;
+    font-size: 1rem;
+    font-weight: 650;
+    line-height: 1.55;
+}
+
+.sos-intervention-actions {
+    display: grid;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.sos-intervention-actions form {
+    display: grid;
+    gap: 12px;
+}
+
+.sos-secondary-button,
+.sos-good-button {
+    width: 100%;
+    min-height: 52px;
+    display: grid;
+    place-items: center;
+    padding: 13px 16px;
+    border-radius: 16px;
+    font: inherit;
+    font-weight: 800;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.sos-secondary-button {
+    border: 1px solid rgba(113, 82, 105, 0.15);
+    background: #ffffff;
+    color: #5e4357;
+}
+
+.sos-good-button {
+    border: 0;
+    background: #7b5270;
+    color: #ffffff;
+}
+
+.sos-secondary-button:hover,
+.sos-good-button:hover {
+    transform: translateY(-1px);
+}
+
+.sos-secondary-button:focus-visible,
+.sos-good-button:focus-visible {
+    outline: 3px solid rgba(176, 111, 151, 0.35);
+    outline-offset: 3px;
+}
