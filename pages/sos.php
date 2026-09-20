@@ -82,6 +82,27 @@ if (
     $struggleReason = '';
 }
 
+$allowedMotivationStyles = [
+    'encourage',
+    'coach',
+    'laugh',
+    'roast',
+];
+
+$motivationStyle = trim(
+    (string) ($_POST['motivation_style'] ?? '')
+);
+
+if (
+    !in_array(
+        $motivationStyle,
+        $allowedMotivationStyles,
+        true
+    )
+) {
+    $motivationStyle = '';
+}
+
 $cheatInterventions = [
     'hungry' => [
         'push' => 'If you are genuinely hungry, eating is not cheating. The goal is to make a choice that actually satisfies you.',
@@ -194,6 +215,47 @@ if (
     $struggleReason !== ''
 ) {
     $currentStrugglePlan = $strugglePlans[$struggleReason];
+}
+
+
+$motivationResponses = [
+    'encourage' => [
+        'push' => 'You do not need to feel fearless or perfectly motivated. You only need to make the next kind decision for yourself.',
+        'action' => 'Choose one useful action that takes five minutes or less.',
+        'why' => 'Small completed actions create evidence that you are still capable of moving forward.',
+        'fact' => 'Self-efficacy grows when you successfully complete manageable actions—not only when you accomplish something huge.',
+    ],
+
+    'coach' => [
+        'push' => 'You already know what needs to happen. Stop negotiating with the mood and complete the next rep, step, or reasonable choice.',
+        'action' => 'Stand up and begin the next task before your brain starts another debate.',
+        'why' => 'Immediate action interrupts avoidance and reduces the time available for excuses to grow.',
+        'fact' => 'Motivation often follows action. Waiting to feel ready can keep the starting line moving farther away.',
+    ],
+
+    'laugh' => [
+        'push' => 'Your brain has filed a formal complaint against effort. Management has reviewed it and denied the request.',
+        'action' => 'Do five minutes of something useful purely to annoy your inner couch potato.',
+        'why' => 'Humor can reduce the emotional weight of a task and make starting feel less threatening.',
+        'fact' => 'A task can feel miserable before you begin and completely manageable once you are already doing it.',
+    ],
+
+    'roast' => [
+        'push' => 'Respectfully, your goals cannot complete themselves while you sit there holding a committee meeting with your excuses.',
+        'action' => 'Get up and do the smallest version of the thing you are avoiding.',
+        'why' => 'A direct interruption can expose avoidance and redirect attention toward an action you can control.',
+        'fact' => 'Your excuse does not need to disappear before you act. It can complain from the passenger seat.',
+    ],
+];
+
+$currentMotivation = null;
+
+if (
+    $selectedCategory === 'motivate' &&
+    $motivationStyle !== ''
+) {
+    $currentMotivation =
+        $motivationResponses[$motivationStyle];
 }
 
 
@@ -410,6 +472,170 @@ if ($selectedCategory === 'results') {
 require dirname(__DIR__) . '/includes/header.php';
 
 ?>
+
+
+<?php if ($currentMotivation !== null): ?>
+
+    <section class="sos-heading">
+        <a class="sos-back-link" href="/?page=sos">
+            ← Back to SOS choices
+        </a>
+
+        <p class="eyebrow">Just Motivate Me</p>
+        <h1>Your push is ready.</h1>
+    </section>
+
+    <section class="sos-intervention-card sos-ai-card">
+        <p class="card-label">Your Push</p>
+
+        <p class="sos-intervention-text">
+            <?= htmlspecialchars(
+                $currentMotivation['push'],
+                ENT_QUOTES,
+                'UTF-8'
+            ) ?>
+        </p>
+    </section>
+
+    <section class="sos-intervention-card sos-action-card">
+        <p class="card-label">⚡ Do This Right Now</p>
+
+        <p class="sos-intervention-text">
+            <?= htmlspecialchars(
+                $currentMotivation['action'],
+                ENT_QUOTES,
+                'UTF-8'
+            ) ?>
+        </p>
+    </section>
+
+    <section class="sos-intervention-card sos-why-card">
+        <p class="card-label">🧠 Why This Works</p>
+
+        <p class="sos-intervention-text">
+            <?= htmlspecialchars(
+                $currentMotivation['why'],
+                ENT_QUOTES,
+                'UTF-8'
+            ) ?>
+        </p>
+    </section>
+
+    <section class="sos-intervention-card sos-fact-card">
+        <p class="card-label">💡 Real-Ass Fact</p>
+
+        <p class="sos-intervention-text">
+            <?= htmlspecialchars(
+                $currentMotivation['fact'],
+                ENT_QUOTES,
+                'UTF-8'
+            ) ?>
+        </p>
+    </section>
+
+    <div class="sos-intervention-actions">
+        <form method="post" action="/?page=sos">
+            <input
+                type="hidden"
+                name="sos_category"
+                value="motivate"
+            >
+
+            <button
+                class="sos-secondary-button"
+                type="submit"
+            >
+                Choose Another Style
+            </button>
+        </form>
+
+        <a class="sos-good-button" href="/?page=home">
+            ✅ I’m Good Now
+        </a>
+    </div>
+
+    <?php require dirname(__DIR__) . '/includes/footer.php'; ?>
+    <?php return; ?>
+
+<?php endif; ?>
+
+
+
+<?php if (
+    $selectedCategory === 'motivate' &&
+    $motivationStyle === ''
+): ?>
+
+    <section class="sos-heading">
+        <a class="sos-back-link" href="/?page=sos">
+            ← Back to SOS choices
+        </a>
+
+        <p class="eyebrow">Choose Your Energy</p>
+        <h1>How do you want me to motivate you?</h1>
+
+        <p class="sos-introduction">
+            Pick the style that will actually work right now.
+        </p>
+    </section>
+
+    <form
+        class="sos-follow-up-list"
+        method="post"
+        action="/?page=sos"
+    >
+        <input
+            type="hidden"
+            name="sos_category"
+            value="motivate"
+        >
+
+        <button
+            class="sos-follow-up-choice"
+            type="submit"
+            name="motivation_style"
+            value="encourage"
+        >
+            <span>🌸</span>
+            <strong>Encourage Me</strong>
+        </button>
+
+        <button
+            class="sos-follow-up-choice"
+            type="submit"
+            name="motivation_style"
+            value="coach"
+        >
+            <span>🔥</span>
+            <strong>Coach Me</strong>
+        </button>
+
+        <button
+            class="sos-follow-up-choice"
+            type="submit"
+            name="motivation_style"
+            value="laugh"
+        >
+            <span>😂</span>
+            <strong>Make Me Laugh</strong>
+        </button>
+
+        <button
+            class="sos-follow-up-choice"
+            type="submit"
+            name="motivation_style"
+            value="roast"
+        >
+            <span>☠️</span>
+            <strong>Roast Me</strong>
+        </button>
+    </form>
+
+    <?php require dirname(__DIR__) . '/includes/footer.php'; ?>
+    <?php return; ?>
+
+<?php endif; ?>
+
 
 
 <?php if ($selectedCategory === 'results'): ?>
