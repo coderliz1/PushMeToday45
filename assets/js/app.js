@@ -62,3 +62,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 250);
 });
+
+
+// Future Me mini-challenge button
+
+document.addEventListener('DOMContentLoaded', function () {
+    const challengeButton = document.getElementById(
+        'futureChallengeButton'
+    );
+
+    const challengeConfirmation = document.getElementById(
+        'futureChallengeConfirmation'
+    );
+
+    if (!challengeButton || !challengeConfirmation) {
+        return;
+    }
+
+    challengeButton.addEventListener('click', function () {
+        challengeButton.hidden = true;
+        challengeConfirmation.hidden = false;
+    });
+});
