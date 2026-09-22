@@ -74,13 +74,16 @@ require dirname(__DIR__) . '/includes/header.php';
     </p>
 
     <div class="future-me-purpose">
-        <span>🧠 Learn</span>
-        <span>🏋️ Do</span>
-        <span>👵 Remember Why</span>
+    <a href="#future-learn">🧠 Learn</a>
+    <a href="#future-do">🏋️ Do</a>
+    <a href="#future-why">👵 Remember Why</a>
     </div>
 </section>
 
-<section class="future-learning-card">
+<section
+    class="future-learning-card"
+    id="future-learn"
+>
     <div class="future-card-heading">
         <span class="future-card-icon">
             <?= htmlspecialchars(
@@ -153,7 +156,9 @@ require dirname(__DIR__) . '/includes/header.php';
     </details>
 </section>
 
-<section class="future-challenge-card">
+<section
+    class="future-challenge-card"
+    id="future-do">
     <div class="future-card-heading">
         <span class="future-card-icon">🏋️</span>
 
@@ -281,7 +286,9 @@ $futureMessage = $futureMessages[$messageIndex];
 
 ?>
 
-<section class="future-message-card">
+<section
+    class="future-message-card"
+    id="future-why">
     <div class="future-message-label">
         <span>💌</span>
 

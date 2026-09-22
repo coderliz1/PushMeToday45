@@ -1318,18 +1318,40 @@ a {
     margin-top: 22px;
 }
 
-.future-me-purpose span {
+.future-me-purpose a {
     display: inline-flex;
     align-items: center;
     min-height: 38px;
     padding: 8px 12px;
-    border: 1px solid rgba(159, 92, 143, 0.12);
+    border: 1px solid rgba(159, 92, 143, 0.16);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.78);
+    background: rgba(255, 255, 255, 0.82);
     color: #514650;
     font-size: 0.82rem;
     font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
     box-shadow: 0 6px 18px rgba(85, 56, 82, 0.05);
+    transition:
+        transform 160ms ease,
+        background 160ms ease,
+        box-shadow 160ms ease;
+}
+
+.future-me-purpose a:hover {
+    background: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(85, 56, 82, 0.1);
+}
+
+.future-me-purpose a:active {
+    transform: translateY(1px);
+}
+
+#future-learn,
+#future-do,
+#future-why {
+    scroll-margin-top: 20px;
 }
 
 
@@ -1815,4 +1837,8 @@ a {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+html {
+    scroll-behavior: smooth;
 }
