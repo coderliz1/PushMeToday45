@@ -254,8 +254,47 @@ if (
     $selectedCategory === 'motivate' &&
     $motivationStyle !== ''
 ) {
+    /*
+     * Start with the existing local response.
+     * This remains available if OpenAI cannot be reached.
+     */
     $currentMotivation =
         $motivationResponses[$motivationStyle];
+
+    $motivationStyleDescriptions = [
+        'encourage' => 'Warm, reassuring, and encouraging.',
+        'coach' => 'Direct, energetic, and challenging like a coach.',
+        'laugh' => 'Funny, playful, and supportive.',
+        'roast' => 'A playful roast that is bold but never cruel.',
+    ];
+
+    try {
+        $aiPush = openai_generate_text(
+            'You are the tiny accountability coach inside '
+            . 'PushMeToday45. Write a fresh motivational push that '
+            . 'helps the user take one useful action in the next five '
+            . 'minutes. Keep it to two or three short sentences. '
+            . 'Do not diagnose, shame, insult appearance, mention '
+            . 'weight, or make medical claims. Return only the '
+            . 'motivational message with no title or markdown.',
+            'Requested motivation style: '
+            . $motivationStyleDescriptions[$motivationStyle],
+            180
+        );
+
+        if ($aiPush !== '') {
+            $currentMotivation['push'] = $aiPush;
+        }
+    } catch (Throwable $exception) {
+        /*
+         * Keep using the local response if the API is unavailable.
+         * The private error goes only to the server error log.
+         */
+        error_log(
+            'OpenAI motivation request failed: '
+            . $exception->getMessage()
+        );
+    }
 }
 
 
