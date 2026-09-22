@@ -572,7 +572,32 @@ require dirname(__DIR__) . '/includes/header.php';
         </p>
     </section>
 
-    <div class="sos-intervention-actions">
+        <div class="sos-intervention-actions">
+        <form method="post" action="/?page=sos">
+            <input
+                type="hidden"
+                name="sos_category"
+                value="motivate"
+            >
+
+            <input
+                type="hidden"
+                name="motivation_style"
+                value="<?= htmlspecialchars(
+                    $motivationStyle,
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>"
+            >
+
+            <button
+                class="sos-secondary-button"
+                type="submit"
+            >
+                🎲 Give Me Another Push
+            </button>
+        </form>
+
         <form method="post" action="/?page=sos">
             <input
                 type="hidden"
