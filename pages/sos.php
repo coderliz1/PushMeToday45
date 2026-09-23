@@ -43,6 +43,16 @@ $cravingDetail = trim(
 
 $cravingDetail = substr($cravingDetail, 0, 255);
 
+$trickIndex = filter_var(
+    $_POST['trick_index'] ?? 0,
+    FILTER_VALIDATE_INT,
+    ['options' => ['min_range' => 0]]
+);
+
+if ($trickIndex === false) {
+    $trickIndex = 0;
+}
+
 $allowedLazySteps = [
     'shoes_on',
     'start_timer',
@@ -180,6 +190,77 @@ $cheatInterventions = [
         'action' => 'Drink some water, leave the food area, and wait ten minutes.',
         'why' => 'A deliberate pause separates an automatic reaction from a conscious decision.',
         'fact' => 'Physical hunger often builds gradually, while a craving is more likely to feel sudden and highly specific.',
+    ],
+];
+
+$cheatTricks = [
+    'hungry' => [
+        [
+            'action' => 'Choose a reasonable meal or snack with protein and fiber.',
+            'why' => 'A satisfying choice reduces the chance that hunger turns into uncontrolled snacking later.',
+            'fact' => 'Protein and fiber generally digest more slowly and can help you feel satisfied longer.',
+        ],
+        [
+            'action' => 'Put a balanced portion on a plate, sit down, and eat it without grazing from the package.',
+            'why' => 'Creating a clear portion turns eating into a deliberate response to hunger instead of an open-ended snack loop.',
+            'fact' => 'Eating directly from a large package can make the amount consumed harder to notice.',
+        ],
+        [
+            'action' => 'Choose the reasonable option you actually want, then pause halfway through and check your hunger again.',
+            'why' => 'A halfway pause gives fullness signals time to become easier to notice without treating food as forbidden.',
+            'fact' => 'Physical fullness develops during a meal rather than appearing all at once with the first bite.',
+        ],
+    ],
+    'craving' => [
+        [
+            'action' => 'Leave the kitchen and start a 10-minute craving timer.',
+            'why' => 'Cravings often rise and fall like a wave. Creating a pause weakens the automatic habit loop.',
+            'fact' => 'A craving can feel urgent without being permanent. Delaying the response gives its intensity time to change.',
+        ],
+        [
+            'action' => 'Brush your teeth or chew mint gum, then move away from the food area.',
+            'why' => 'A strong new taste and a change of location interrupt the sensory and environmental cues feeding the craving.',
+            'fact' => 'Habits are strongly influenced by cues such as location, smell, sight, and routine.',
+        ],
+        [
+            'action' => 'Decide on one reasonable portion, put it on a plate, and put the rest away before eating.',
+            'why' => 'A planned portion replaces the all-or-nothing choice between total restriction and uncontrolled eating.',
+            'fact' => 'Flexible, deliberate choices can be easier to sustain than treating a desired food as completely forbidden.',
+        ],
+    ],
+    'emotional' => [
+        [
+            'action' => 'Change rooms and walk for five minutes.',
+            'why' => 'Changing your environment interrupts the cue that is pushing you toward automatic eating.',
+            'fact' => 'Stress can increase reward-seeking behavior, which can make highly enjoyable foods feel harder to resist.',
+        ],
+        [
+            'action' => 'Name the feeling out loud, then write one sentence describing what you actually need right now.',
+            'why' => 'Labeling an emotion creates distance from it and helps separate the feeling from the automatic urge to eat.',
+            'fact' => 'Putting feelings into words can make an emotional reaction feel more manageable.',
+        ],
+        [
+            'action' => 'Text or call someone, or step outside for five minutes before making a food decision.',
+            'why' => 'Connection or a sensory reset can meet the need for relief without asking food to do that entire job.',
+            'fact' => 'Boredom, loneliness, and stress can trigger eating even when physical hunger is low.',
+        ],
+    ],
+    'unsure' => [
+        [
+            'action' => 'Drink some water, leave the food area, and wait ten minutes.',
+            'why' => 'A deliberate pause separates an automatic reaction from a conscious decision.',
+            'fact' => 'Physical hunger often builds gradually, while a craving is more likely to feel sudden and highly specific.',
+        ],
+        [
+            'action' => 'Ask yourself whether several ordinary foods sound good or only one specific food does.',
+            'why' => 'Broad interest in food often points toward hunger, while a very specific demand may be a craving.',
+            'fact' => 'Hunger and cravings can overlap, so the goal is useful information—not a perfect diagnosis.',
+        ],
+        [
+            'action' => 'Rate your hunger from 0 to 10, wait five minutes away from the kitchen, and rate it again.',
+            'why' => 'Checking twice helps you notice whether the sensation is steadily building or changing with attention and environment.',
+            'fact' => 'A short pause can make internal cues easier to notice before you choose what to do.',
+        ],
     ],
 ];
 
@@ -372,6 +453,17 @@ if (
 ) {
     $currentIntervention = $cheatInterventions[$cheatReason];
 
+    if ($responseAction === 'another') {
+        $trickIndex++;
+    }
+
+    $reasonTricks = $cheatTricks[$cheatReason];
+    $trickIndex %= count($reasonTricks);
+    $currentIntervention = array_merge(
+        $currentIntervention,
+        $reasonTricks[$trickIndex]
+    );
+
     $cheatContexts = [
         'hungry' => 'The user is genuinely hungry. Do not discourage eating; support a reasonable satisfying choice.',
         'craving' => 'The user has a specific craving and wants help pausing before acting automatically.',
@@ -380,7 +472,9 @@ if (
     ];
 
     $currentIntervention['push'] = sos_generate_push(
-        $cheatContexts[$cheatReason],
+        $cheatContexts[$cheatReason]
+        . ' Technique selected for this response: '
+        . $currentIntervention['action'],
         $currentIntervention['push'],
         $responseAction
     );
@@ -1734,6 +1828,12 @@ require dirname(__DIR__) . '/includes/header.php';
                     ENT_QUOTES,
                     'UTF-8'
                 ) ?>"
+            >
+
+            <input
+                type="hidden"
+                name="trick_index"
+                value="<?= $trickIndex ?>"
             >
 
             <button
