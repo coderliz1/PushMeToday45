@@ -103,6 +103,56 @@ if (
     $motivationStyle = '';
 }
 
+$allowedResponseActions = ['another', 'teach'];
+$responseAction = trim(
+    (string) ($_POST['response_action'] ?? '')
+);
+
+if (!in_array($responseAction, $allowedResponseActions, true)) {
+    $responseAction = '';
+}
+
+/**
+ * Ask OpenAI for one short, non-identifying SOS push.
+ * Private measurements, notes, cycle information, and free-text
+ * craving details are deliberately never passed to this function.
+ */
+function sos_generate_push(
+    string $situation,
+    string $fallback,
+    string $responseAction = ''
+): string {
+    $requestType = $responseAction === 'teach'
+        ? 'Teach one useful behavioral principle in plain language, then give one tiny action.'
+        : 'Give a fresh, practical push toward one useful action in the next five minutes.';
+
+    try {
+        $aiPush = openai_generate_text(
+            'You are the tiny accountability coach inside '
+            . 'PushMeToday45. '
+            . $requestType . ' '
+            . 'Write two or three short sentences. Be supportive, '
+            . 'specific, and conversational. Do not diagnose, shame, '
+            . 'mention appearance, prescribe medical treatment, or '
+            . 'make personalized medical claims. Return only the '
+            . 'message with no heading or markdown.',
+            'Non-identifying situation: ' . $situation,
+            180
+        );
+
+        if ($aiPush !== '') {
+            return $aiPush;
+        }
+    } catch (Throwable $exception) {
+        error_log(
+            'OpenAI SOS request failed: '
+            . $exception->getMessage()
+        );
+    }
+
+    return $fallback;
+}
+
 $cheatInterventions = [
     'hungry' => [
         'push' => 'If you are genuinely hungry, eating is not cheating. The goal is to make a choice that actually satisfies you.',
@@ -215,6 +265,21 @@ if (
     $struggleReason !== ''
 ) {
     $currentStrugglePlan = $strugglePlans[$struggleReason];
+
+    $struggleContexts = [
+        'physically_tired' => 'The user feels physically tired and needs a minimum viable day.',
+        'overwhelmed' => 'The user feels mentally overwhelmed and needs one manageable next step.',
+        'bad_mood' => 'The user is in a bad mood and needs a small constructive reset.',
+        'food_sideways' => 'The user had an imperfect food choice and needs help avoiding an all-or-nothing spiral.',
+        'missed_workout' => 'The user missed a workout and needs a small fallback action without guilt.',
+        'everything' => 'The whole day feels difficult and the user needs a compassionate minimum viable day.',
+    ];
+
+    $currentStrugglePlan['push'] = sos_generate_push(
+        $struggleContexts[$struggleReason],
+        $currentStrugglePlan['push'],
+        $responseAction
+    );
 }
 
 
@@ -306,6 +371,47 @@ if (
     $cheatReason !== ''
 ) {
     $currentIntervention = $cheatInterventions[$cheatReason];
+
+    $cheatContexts = [
+        'hungry' => 'The user is genuinely hungry. Do not discourage eating; support a reasonable satisfying choice.',
+        'craving' => 'The user has a specific craving and wants help pausing before acting automatically.',
+        'emotional' => 'The user may want food because of stress, boredom, or emotion and needs a non-food interruption.',
+        'unsure' => 'The user cannot tell whether this is hunger or a craving and needs a short neutral pause.',
+    ];
+
+    $currentIntervention['push'] = sos_generate_push(
+        $cheatContexts[$cheatReason],
+        $currentIntervention['push'],
+        $responseAction
+    );
+}
+
+$scalePush = 'A single scale reading is information—not a verdict. Look at the direction over time, not one noisy number.';
+$resultsPush = 'Progress is not limited to what the mirror or scale shows today. Repeated actions are evidence that you are building something—even before every result becomes obvious.';
+$lazyPush = 'Do not promise yourself a perfect workout. Make starting so easy that your excuses have nothing useful to argue with.';
+
+if ($selectedCategory === 'lazy' && $lazyStep === '') {
+    $lazyPush = sos_generate_push(
+        'The user is avoiding a workout. Reduce activation energy and lead directly into putting on their shoes.',
+        $lazyPush,
+        $responseAction
+    );
+}
+
+if ($selectedCategory === 'scale') {
+    $scalePush = sos_generate_push(
+        'The user is frustrated by a scale reading. Emphasize normal short-term fluctuation and looking at trends. No measurements are provided.',
+        $scalePush,
+        $responseAction
+    );
+}
+
+if ($selectedCategory === 'results') {
+    $resultsPush = sos_generate_push(
+        'The user feels that results are not visible yet. Encourage noticing multiple forms of progress and continuing one useful behavior. No personal statistics are provided.',
+        $resultsPush,
+        $responseAction
+    );
 }
 
 
@@ -572,7 +678,7 @@ require dirname(__DIR__) . '/includes/header.php';
         </p>
     </section>
 
-        <div class="sos-intervention-actions">
+    <div class="sos-intervention-actions">
         <form method="post" action="/?page=sos">
             <input
                 type="hidden"
@@ -812,9 +918,11 @@ require dirname(__DIR__) . '/includes/header.php';
         <p class="card-label">Your Push</p>
 
         <p class="sos-intervention-text">
-            Progress is not limited to what the mirror or scale
-            shows today. Repeated actions are evidence that you are
-            building something—even before every result becomes obvious.
+            <?= htmlspecialchars(
+                $resultsPush,
+                ENT_QUOTES,
+                'UTF-8'
+            ) ?>
         </p>
     </section>
 
@@ -838,6 +946,32 @@ require dirname(__DIR__) . '/includes/header.php';
     </section>
 
     <div class="sos-intervention-actions">
+        <form method="post" action="/?page=sos">
+            <input type="hidden" name="sos_category" value="results">
+
+            <button
+                class="sos-secondary-button"
+                type="submit"
+                name="response_action"
+                value="another"
+            >
+                🎲 Give Me Another Push
+            </button>
+        </form>
+
+        <form method="post" action="/?page=sos">
+            <input type="hidden" name="sos_category" value="results">
+
+            <button
+                class="sos-secondary-button"
+                type="submit"
+                name="response_action"
+                value="teach"
+            >
+                🧠 Teach Me Something
+            </button>
+        </form>
+
         <a class="sos-good-button" href="/?page=check-in">
             ✅ Add a Check-In
         </a>
@@ -923,8 +1057,11 @@ require dirname(__DIR__) . '/includes/header.php';
         <p class="card-label">Your Push</p>
 
         <p class="sos-intervention-text">
-            A single scale reading is information—not a verdict.
-            Look at the direction over time, not one noisy number.
+            <?= htmlspecialchars(
+                $scalePush,
+                ENT_QUOTES,
+                'UTF-8'
+            ) ?>
         </p>
     </section>
 
@@ -957,6 +1094,32 @@ require dirname(__DIR__) . '/includes/header.php';
     </section>
 
     <div class="sos-intervention-actions">
+        <form method="post" action="/?page=sos">
+            <input type="hidden" name="sos_category" value="scale">
+
+            <button
+                class="sos-secondary-button"
+                type="submit"
+                name="response_action"
+                value="another"
+            >
+                🎲 Give Me Another Perspective
+            </button>
+        </form>
+
+        <form method="post" action="/?page=sos">
+            <input type="hidden" name="sos_category" value="scale">
+
+            <button
+                class="sos-secondary-button"
+                type="submit"
+                name="response_action"
+                value="teach"
+            >
+                🧠 Teach Me Something
+            </button>
+        </form>
+
         <a class="sos-good-button" href="/?page=home">
             ✅ I’m Good Now
         </a>
@@ -1038,6 +1201,50 @@ require dirname(__DIR__) . '/includes/header.php';
     </section>
 
     <div class="sos-intervention-actions">
+        <form method="post" action="/?page=sos">
+            <input type="hidden" name="sos_category" value="struggling">
+            <input
+                type="hidden"
+                name="struggle_reason"
+                value="<?= htmlspecialchars(
+                    $struggleReason,
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>"
+            >
+
+            <button
+                class="sos-secondary-button"
+                type="submit"
+                name="response_action"
+                value="another"
+            >
+                🎲 Give Me Another Push
+            </button>
+        </form>
+
+        <form method="post" action="/?page=sos">
+            <input type="hidden" name="sos_category" value="struggling">
+            <input
+                type="hidden"
+                name="struggle_reason"
+                value="<?= htmlspecialchars(
+                    $struggleReason,
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>"
+            >
+
+            <button
+                class="sos-secondary-button"
+                type="submit"
+                name="response_action"
+                value="teach"
+            >
+                🧠 Teach Me Something
+            </button>
+        </form>
+
         <a class="sos-good-button" href="/?page=home">
             ✅ I Have a Plan
         </a>
@@ -1166,6 +1373,18 @@ require dirname(__DIR__) . '/includes/header.php';
 
         <p class="sos-introduction">
             We are making this ridiculously easy.
+        </p>
+    </section>
+
+    <section class="sos-intervention-card sos-ai-card">
+        <p class="card-label">Your Push</p>
+
+        <p class="sos-intervention-text">
+            <?= htmlspecialchars(
+                $lazyPush,
+                ENT_QUOTES,
+                'UTF-8'
+            ) ?>
         </p>
     </section>
 
