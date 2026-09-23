@@ -43,14 +43,20 @@ $cravingDetail = trim(
 
 $cravingDetail = substr($cravingDetail, 0, 255);
 
-$trickIndex = filter_var(
-    $_POST['trick_index'] ?? 0,
-    FILTER_VALIDATE_INT,
-    ['options' => ['min_range' => 0]]
-);
+$avoidActionsRaw = (string) ($_POST['avoid_actions'] ?? '[]');
+$avoidActionsDecoded = json_decode($avoidActionsRaw, true);
+$avoidActions = [];
 
-if ($trickIndex === false) {
-    $trickIndex = 0;
+if (is_array($avoidActionsDecoded)) {
+    foreach (array_slice($avoidActionsDecoded, -5) as $avoidAction) {
+        if (is_string($avoidAction)) {
+            $avoidAction = substr(trim($avoidAction), 0, 200);
+
+            if ($avoidAction !== '') {
+                $avoidActions[] = $avoidAction;
+            }
+        }
+    }
 }
 
 $allowedLazySteps = [
@@ -161,6 +167,99 @@ function sos_generate_push(
     }
 
     return $fallback;
+}
+
+/**
+ * Generate a complete, fresh intervention while retaining a safe
+ * local fallback. Only non-identifying SOS context is sent.
+ */
+function sos_generate_intervention(
+    string $situation,
+    array $fallback,
+    array $avoidActions,
+    string $responseAction = ''
+): array {
+    $variationAngles = [
+        'environmental cue change',
+        'urge surfing',
+        'implementation intention',
+        'sensory reset',
+        'brief delay',
+        'emotion labeling',
+        'social connection',
+        'reasonable alternative',
+        'mindful portioning',
+        'habit-loop interruption',
+    ];
+
+    try {
+        $variationAngle = $variationAngles[
+            random_int(0, count($variationAngles) - 1)
+        ];
+
+        $modeInstruction = $responseAction === 'teach'
+            ? 'Make the explanation especially educational but still brief.'
+            : 'Make this a practical intervention for the next five minutes.';
+
+        $avoidInstruction = $avoidActions === []
+            ? 'There are no previous actions to avoid.'
+            : 'Do not repeat or closely paraphrase any of these recent actions: '
+                . json_encode($avoidActions, JSON_UNESCAPED_UNICODE);
+
+        $jsonText = openai_generate_text(
+            'You are the tiny accountability coach inside PushMeToday45. '
+            . 'Generate one genuinely fresh SOS intervention. '
+            . $modeInstruction . ' '
+            . 'Use the suggested behavioral angle only when it fits the situation. '
+            . 'Do not diagnose, shame, mention appearance, prescribe treatment, '
+            . 'or make personalized medical claims. The fact must be broadly '
+            . 'evidence-based and must not overstate certainty. Keep every value concise. '
+            . 'Return ONLY valid JSON with exactly four string keys: '
+            . '"push", "action", "why", and "fact". No markdown or code fence.',
+            'Situation: ' . $situation
+                . "\nSuggested variation angle: " . $variationAngle
+                . "\n" . $avoidInstruction,
+            420
+        );
+
+        $jsonText = trim($jsonText);
+        $jsonText = preg_replace(
+            '/^```(?:json)?\s*|\s*```$/i',
+            '',
+            $jsonText
+        );
+
+        $generated = json_decode($jsonText, true);
+
+        if (!is_array($generated)) {
+            return $fallback;
+        }
+
+        foreach (['push', 'action', 'why', 'fact'] as $key) {
+            if (
+                !isset($generated[$key]) ||
+                !is_string($generated[$key]) ||
+                trim($generated[$key]) === ''
+            ) {
+                return $fallback;
+            }
+
+            $generated[$key] = substr(
+                trim($generated[$key]),
+                0,
+                700
+            );
+        }
+
+        return $generated;
+    } catch (Throwable $exception) {
+        error_log(
+            'OpenAI SOS intervention request failed: '
+            . $exception->getMessage()
+        );
+
+        return $fallback;
+    }
 }
 
 $cheatInterventions = [
@@ -453,17 +552,6 @@ if (
 ) {
     $currentIntervention = $cheatInterventions[$cheatReason];
 
-    if ($responseAction === 'another') {
-        $trickIndex++;
-    }
-
-    $reasonTricks = $cheatTricks[$cheatReason];
-    $trickIndex %= count($reasonTricks);
-    $currentIntervention = array_merge(
-        $currentIntervention,
-        $reasonTricks[$trickIndex]
-    );
-
     $cheatContexts = [
         'hungry' => 'The user is genuinely hungry. Do not discourage eating; support a reasonable satisfying choice.',
         'craving' => 'The user has a specific craving and wants help pausing before acting automatically.',
@@ -471,13 +559,15 @@ if (
         'unsure' => 'The user cannot tell whether this is hunger or a craving and needs a short neutral pause.',
     ];
 
-    $currentIntervention['push'] = sos_generate_push(
-        $cheatContexts[$cheatReason]
-        . ' Technique selected for this response: '
-        . $currentIntervention['action'],
-        $currentIntervention['push'],
+    $currentIntervention = sos_generate_intervention(
+        $cheatContexts[$cheatReason],
+        $currentIntervention,
+        $avoidActions,
         $responseAction
     );
+
+    $avoidActions[] = $currentIntervention['action'];
+    $avoidActions = array_slice($avoidActions, -5);
 }
 
 $scalePush = 'A single scale reading is information—not a verdict. Look at the direction over time, not one noisy number.';
@@ -1832,8 +1922,15 @@ require dirname(__DIR__) . '/includes/header.php';
 
             <input
                 type="hidden"
-                name="trick_index"
-                value="<?= $trickIndex ?>"
+                name="avoid_actions"
+                value="<?= htmlspecialchars(
+                    json_encode(
+                        $avoidActions,
+                        JSON_UNESCAPED_UNICODE
+                    ),
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>"
             >
 
             <button
