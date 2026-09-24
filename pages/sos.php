@@ -119,7 +119,7 @@ if (
     $motivationStyle = '';
 }
 
-$allowedResponseActions = ['another', 'teach'];
+$allowedResponseActions = ['another'];
 $responseAction = trim(
     (string) ($_POST['response_action'] ?? '')
 );
@@ -138,9 +138,7 @@ function sos_generate_push(
     string $fallback,
     string $responseAction = ''
 ): string {
-    $requestType = $responseAction === 'teach'
-        ? 'Teach one useful behavioral principle in plain language, then give one tiny action.'
-        : 'Give a fresh, practical push toward one useful action in the next five minutes.';
+    $requestType = 'Give a fresh, practical push toward one useful action in the next five minutes.';
 
     try {
         $aiPush = openai_generate_text(
@@ -197,9 +195,7 @@ function sos_generate_intervention(
             random_int(0, count($variationAngles) - 1)
         ];
 
-        $modeInstruction = $responseAction === 'teach'
-            ? 'Make the explanation especially educational but still brief.'
-            : 'Make this a practical intervention for the next five minutes.';
+        $modeInstruction = 'Make this a practical intervention for the next five minutes.';
 
         $avoidInstruction = $avoidActions === []
             ? 'There are no previous actions to avoid.'
@@ -260,6 +256,210 @@ function sos_generate_intervention(
 
         return $fallback;
     }
+}
+
+/**
+ * Generate one short general health or fitness lesson for the modal.
+ * Only recent topic names are supplied; no SOS or personal data is sent.
+ */
+function sos_generate_learning_fact(array $avoidCategories): array
+{
+    $categories = [
+        'muscle' => ['label' => 'Muscle', 'emoji' => '💪'],
+        'bones' => ['label' => 'Bones', 'emoji' => '🦴'],
+        'heart' => ['label' => 'Heart & Cardio', 'emoji' => '❤️'],
+        'brain' => ['label' => 'Brain & Exercise', 'emoji' => '🧠'],
+        'body_composition' => ['label' => 'Body Composition', 'emoji' => '🔥'],
+        'nutrition' => ['label' => 'Nutrition', 'emoji' => '🍗'],
+        'sleep' => ['label' => 'Sleep & Recovery', 'emoji' => '😴'],
+        'balance' => ['label' => 'Balance', 'emoji' => '⚖️'],
+        'mobility' => ['label' => 'Mobility', 'emoji' => '🧘'],
+        'exercise_physiology' => ['label' => 'Exercise Physiology', 'emoji' => '🏃'],
+        'healthy_aging' => ['label' => 'Healthy Aging', 'emoji' => '👵'],
+        'menopause' => ['label' => 'Menopause & Movement', 'emoji' => '🔥'],
+        'human_body' => ['label' => 'Human Body', 'emoji' => '🤯'],
+    ];
+
+    $available = array_values(array_diff(
+        array_keys($categories),
+        $avoidCategories
+    ));
+
+    if ($available === []) {
+        $available = array_keys($categories);
+    }
+
+    $categoryKey = $available[random_int(0, count($available) - 1)];
+    $category = $categories[$categoryKey];
+
+    $fallbacks = [
+        'muscle' => [
+            'headline' => 'Strength can improve before muscles look different.',
+            'explanation' => 'Early strength gains can partly come from your nervous system getting better at recruiting and coordinating muscle fibers.',
+            'why' => 'Your body may be improving even before a visible change appears.',
+            'translation' => 'The mirror can be late to the meeting. Your nervous system already clocked in.',
+        ],
+        'bones' => [
+            'headline' => 'Your skeleton is constantly being remodeled.',
+            'explanation' => 'Specialized cells continually remove older bone tissue while other cells build new tissue.',
+            'why' => 'Mechanical loading from appropriate activity is one signal involved in bone adaptation.',
+            'translation' => 'Your skeleton is not just sitting in there doing nothing.',
+        ],
+        'heart' => [
+            'headline' => 'Your heart adapts to regular aerobic activity.',
+            'explanation' => 'Over time, aerobic training can help the heart pump more blood with each beat.',
+            'why' => 'A more efficient cardiovascular system supports everyday activity and exercise.',
+            'translation' => 'Cardio is basically efficiency training for your internal pump.',
+        ],
+        'brain' => [
+            'headline' => 'Movement can affect your brain before your body visibly changes.',
+            'explanation' => 'A single bout of activity can influence mood, attention, and stress responses.',
+            'why' => 'Exercise benefits are not limited to calories or appearance.',
+            'translation' => 'Your brain can collect a win before the mirror notices anything.',
+        ],
+        'body_composition' => [
+            'headline' => 'Body weight and body composition are not the same thing.',
+            'explanation' => 'Scale weight includes muscle, fat, water, stored carbohydrate, and digestive contents.',
+            'why' => 'One number cannot explain every change happening in your body.',
+            'translation' => 'The scale has one job and still leaves out half the story.',
+        ],
+        'nutrition' => [
+            'headline' => 'Protein does more than support muscle growth.',
+            'explanation' => 'Your body also uses dietary protein to build enzymes, hormones, and many structural tissues.',
+            'why' => 'Protein supports routine repair and maintenance throughout the body.',
+            'translation' => 'Protein has a much longer résumé than “gym food.”',
+        ],
+        'sleep' => [
+            'headline' => 'Sleep is active recovery, not empty time.',
+            'explanation' => 'During sleep, the body carries out processes involved in tissue repair, memory, and metabolic regulation.',
+            'why' => 'Recovery helps you adapt to the work you already did.',
+            'translation' => 'Going to bed is not quitting. It is the overnight maintenance shift.',
+        ],
+        'balance' => [
+            'headline' => 'Balance is a skill your nervous system can practice.',
+            'explanation' => 'It combines information from vision, the inner ear, sensation, and coordinated muscle responses.',
+            'why' => 'Practicing safely can improve how those systems work together.',
+            'translation' => 'Standing on one foot is a group project inside your body.',
+        ],
+        'mobility' => [
+            'headline' => 'Mobility is more than being flexible.',
+            'explanation' => 'Mobility includes having usable control and strength through a joint’s available range of motion.',
+            'why' => 'Control matters when you need that range during real movement.',
+            'translation' => 'Touching your toes is neat. Owning the movement is the bigger flex.',
+        ],
+        'exercise_physiology' => [
+            'headline' => 'Your muscles store quick-use carbohydrate fuel.',
+            'explanation' => 'Carbohydrate can be stored as glycogen in muscle and used during activity.',
+            'why' => 'Training and nutrition both influence how that fuel is stored and used.',
+            'translation' => 'Your muscles have tiny fuel cupboards. WTF, really?',
+        ],
+        'healthy_aging' => [
+            'headline' => 'Muscle supports more than how much you can lift.',
+            'explanation' => 'Strength contributes to tasks such as climbing stairs, carrying groceries, and rising from a chair.',
+            'why' => 'Maintaining strength can support function and independence as you age.',
+            'translation' => 'Today’s squats are future-you’s “I’ve got it” fund.',
+        ],
+        'menopause' => [
+            'headline' => 'The menopausal transition can affect bone and muscle health.',
+            'explanation' => 'Hormonal changes are one reason resistance and weight-bearing activity become increasingly relevant over time.',
+            'why' => 'Supporting strength and bone health is a long game, not a last-minute project.',
+            'translation' => 'Future-you would like you to keep caring about your skeleton now.',
+        ],
+        'human_body' => [
+            'headline' => 'Your heart has its own electrical system.',
+            'explanation' => 'Specialized cardiac cells generate and conduct signals that coordinate each heartbeat.',
+            'why' => 'That built-in signaling helps the heart pump in an organized rhythm.',
+            'translation' => 'You are walking around with biological wiring in your chest. WTF, really?',
+        ],
+    ];
+
+    $fallback = $fallbacks[$categoryKey];
+
+    try {
+        $jsonText = openai_generate_text(
+            'You create one concise, interesting, evidence-based general health '
+            . 'or fitness lesson for a mobile app. Use the requested category. '
+            . 'Prefer a surprising but well-established fact. Be conservative '
+            . 'and accurate. Do not diagnose, personalize medical advice, recommend '
+            . 'supplements, promote extreme dieting, or suggest dangerous exercise. '
+            . 'Return ONLY valid JSON with exactly four string keys: "headline", '
+            . '"explanation", "why", and "translation". The headline is one short '
+            . 'fact. Explanation and why are each one or two short sentences. '
+            . 'Translation is one brief funny plain-language line. No markdown.',
+            'Requested category: ' . $category['label'],
+            380
+        );
+
+        $jsonText = preg_replace(
+            '/^```(?:json)?\s*|\s*```$/i',
+            '',
+            trim($jsonText)
+        );
+        $generated = json_decode($jsonText, true);
+
+        if (is_array($generated)) {
+            foreach (['headline', 'explanation', 'why', 'translation'] as $key) {
+                if (!isset($generated[$key]) || !is_string($generated[$key]) || trim($generated[$key]) === '') {
+                    throw new RuntimeException('OpenAI returned an incomplete learning fact.');
+                }
+                $generated[$key] = substr(trim($generated[$key]), 0, 500);
+            }
+            $fallback = $generated;
+        }
+    } catch (Throwable $exception) {
+        error_log('OpenAI SOS learning request failed: ' . $exception->getMessage());
+    }
+
+    return [
+        'category_key' => $categoryKey,
+        'category' => $category['label'],
+        'emoji' => $category['emoji'],
+        'headline' => $fallback['headline'],
+        'explanation' => $fallback['explanation'],
+        'why' => $fallback['why'],
+        'translation' => $fallback['translation'],
+    ];
+}
+
+if (
+    ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' &&
+    ($_POST['education_request'] ?? '') === '1'
+) {
+    header('Content-Type: application/json; charset=utf-8');
+
+    $allowedLearningCategories = [
+        'muscle', 'bones', 'heart', 'brain', 'body_composition',
+        'nutrition', 'sleep', 'balance', 'mobility',
+        'exercise_physiology', 'healthy_aging', 'menopause', 'human_body',
+    ];
+    $decodedCategories = json_decode(
+        (string) ($_POST['avoid_categories'] ?? '[]'),
+        true
+    );
+    $avoidCategories = [];
+
+    if (is_array($decodedCategories)) {
+        foreach (array_slice($decodedCategories, -5) as $candidate) {
+            if (is_string($candidate) && in_array($candidate, $allowedLearningCategories, true)) {
+                $avoidCategories[] = $candidate;
+            }
+        }
+    }
+
+    try {
+        echo json_encode(
+            [
+                'success' => true,
+                'fact' => sos_generate_learning_fact($avoidCategories),
+            ],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
+    } catch (Throwable $exception) {
+        http_response_code(500);
+        echo json_encode(['success' => false]);
+    }
+
+    exit;
 }
 
 $cheatInterventions = [
@@ -802,6 +1002,56 @@ require dirname(__DIR__) . '/includes/header.php';
 
 ?>
 
+<div
+    class="sos-learning-modal"
+    id="sos-learning-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="sos-learning-headline"
+    hidden
+>
+    <div class="sos-learning-backdrop" data-sos-learning-close></div>
+
+    <section class="sos-learning-dialog" tabindex="-1">
+        <button
+            class="sos-learning-close"
+            type="button"
+            aria-label="Close Teach Me Something"
+            data-sos-learning-close
+        >×</button>
+
+        <div class="sos-learning-category">
+            <span id="sos-learning-emoji">🧠</span>
+            <span id="sos-learning-category">Teach Me Something</span>
+        </div>
+
+        <p class="sos-learning-kicker">Did You Know?</p>
+        <h2 id="sos-learning-headline">Finding you a good one…</h2>
+        <p id="sos-learning-explanation"></p>
+
+        <div class="sos-learning-why">
+            <strong>Why You Care</strong>
+            <p id="sos-learning-why"></p>
+        </div>
+
+        <div class="sos-learning-translation">
+            <strong>Real-Ass Translation 😂</strong>
+            <p id="sos-learning-translation"></p>
+        </div>
+
+        <p class="sos-learning-status" id="sos-learning-status" aria-live="polite"></p>
+
+        <div class="sos-learning-actions">
+            <button class="sos-secondary-button" id="sos-learning-another" type="button">
+                🎲 Teach Me Another
+            </button>
+            <button class="sos-good-button" type="button" data-sos-learning-close>
+                ✓ Got It
+            </button>
+        </div>
+    </section>
+</div>
+
 
 <?php if ($currentMotivation !== null): ?>
 
@@ -1147,10 +1397,8 @@ require dirname(__DIR__) . '/includes/header.php';
             <input type="hidden" name="sos_category" value="results">
 
             <button
-                class="sos-secondary-button"
-                type="submit"
-                name="response_action"
-                value="teach"
+                class="sos-secondary-button sos-teach-trigger"
+                type="button"
             >
                 🧠 Teach Me Something
             </button>
@@ -1295,10 +1543,8 @@ require dirname(__DIR__) . '/includes/header.php';
             <input type="hidden" name="sos_category" value="scale">
 
             <button
-                class="sos-secondary-button"
-                type="submit"
-                name="response_action"
-                value="teach"
+                class="sos-secondary-button sos-teach-trigger"
+                type="button"
             >
                 🧠 Teach Me Something
             </button>
@@ -1420,10 +1666,8 @@ require dirname(__DIR__) . '/includes/header.php';
             >
 
             <button
-                class="sos-secondary-button"
-                type="submit"
-                name="response_action"
-                value="teach"
+                class="sos-secondary-button sos-teach-trigger"
+                type="button"
             >
                 🧠 Teach Me Something
             </button>
@@ -1943,10 +2187,8 @@ require dirname(__DIR__) . '/includes/header.php';
             </button>
 
             <button
-                class="sos-secondary-button"
-                type="submit"
-                name="response_action"
-                value="teach"
+                class="sos-secondary-button sos-teach-trigger"
+                type="button"
             >
                 🧠 Teach Me Something
             </button>
