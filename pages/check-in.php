@@ -168,7 +168,7 @@ require dirname(__DIR__) . '/includes/header.php';
                 id="check_in_date"
                 name="check_in_date"
                 type="date"
-                value="<?= date('Y-m-d') ?>"
+                value="<?= (new DateTimeImmutable('now', new DateTimeZone('America/New_York')))->format('Y-m-d') ?>"
                 required
             >
         </div>
