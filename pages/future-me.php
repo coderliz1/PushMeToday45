@@ -54,8 +54,116 @@ $learningCards = [
     ],
 ];
 
+$miniChallenges = [
+    [
+        'icon' => '🏋️',
+        'category' => 'Strength',
+        'time' => 'Approximately 8 minutes',
+        'title' => 'Mini Strength Challenge',
+        'introduction' =>
+            'Two rounds. Nothing complicated. Just show up and move.',
+        'exercises' => [
+            '10 chair or bodyweight squats',
+            '10 wall or incline push-ups',
+            '10 dumbbell rows on each side',
+            '15 glute bridges',
+        ],
+        'finish' => 'Repeat the list × 2',
+        'confirmation' =>
+            'Future You approves. Go handle those eight minutes.',
+    ],
+    [
+        'icon' => '🔥',
+        'category' => 'Core',
+        'time' => 'Approximately 6 minutes',
+        'title' => 'Quick Core Challenge',
+        'introduction' =>
+            'Move slowly and focus on control rather than speed.',
+        'exercises' => [
+            '8 bird dogs on each side',
+            '10 dead bugs on each side',
+            '15-second side plank on each side',
+            '20-second forearm plank',
+        ],
+        'finish' => 'Complete 1–2 comfortable rounds',
+        'confirmation' =>
+            'Core mission accepted. Controlled reps count.',
+    ],
+    [
+        'icon' => '⚖️',
+        'category' => 'Balance',
+        'time' => 'Approximately 5 minutes',
+        'title' => 'Future-Me Balance Challenge',
+        'introduction' =>
+            'Stand near a sturdy counter or chair for support.',
+        'exercises' => [
+            'Stand on your left foot for 20 seconds',
+            'Stand on your right foot for 20 seconds',
+            'Walk heel-to-toe for 10 careful steps',
+            'Repeat each side once',
+        ],
+        'finish' => 'Use support whenever needed',
+        'confirmation' =>
+            'Flamingo training complete. Future You approves. 🦩',
+    ],
+    [
+        'icon' => '🧘',
+        'category' => 'Mobility',
+        'time' => 'Approximately 6 minutes',
+        'title' => 'Mobility Reset',
+        'introduction' =>
+            'Use a comfortable range and breathe normally.',
+        'exercises' => [
+            '5 slow shoulder circles in each direction',
+            '6 standing torso rotations on each side',
+            '8 gentle hip hinges',
+            '20-second calf stretch on each side',
+        ],
+        'finish' => 'Move gently through the list × 2',
+        'confirmation' =>
+            'Mobility reset started. Your joints appreciate the attention.',
+    ],
+    [
+        'icon' => '❤️',
+        'category' => 'Cardio',
+        'time' => 'Approximately 10 minutes',
+        'title' => 'Ten-Minute Movement Boost',
+        'introduction' =>
+            'Choose a pace that lets you stay in control.',
+        'exercises' => [
+            'Walk comfortably for 2 minutes',
+            'Walk briskly for 1 minute',
+            'Return to a comfortable pace for 1 minute',
+            'Repeat the pattern until 10 minutes is complete',
+        ],
+        'finish' => 'Indoor, outdoor or treadmill all count',
+        'confirmation' =>
+            'Ten minutes of movement is officially happening.',
+    ],
+    [
+        'icon' => '🌸',
+        'category' => 'Low-Energy Day',
+        'time' => 'Approximately 5 minutes',
+        'title' => 'Minimum-Effort Movement',
+        'introduction' =>
+            'This is for the days when motivation has left the building.',
+        'exercises' => [
+            'Walk around for 2 minutes',
+            'Complete 5 chair squats',
+            'Complete 5 wall push-ups',
+            'Take 5 slow breaths',
+        ],
+        'finish' => 'One round is enough today',
+        'confirmation' =>
+            'You did not need a perfect workout. You only needed to begin.',
+    ],
+];
 $timezone = new DateTimeZone('America/New_York');
 $today = new DateTimeImmutable('today', $timezone);
+$challengeIndex =
+    (int) $today->format('z') % count($miniChallenges);
+
+$todayChallenge = $miniChallenges[$challengeIndex];
 $factIndex = (int) $today->format('z') % count($learningCards);
 $todayFact = $learningCards[$factIndex];
 
@@ -158,48 +266,71 @@ require dirname(__DIR__) . '/includes/header.php';
 
 <section
     class="future-challenge-card"
-    id="future-do">
+    id="future-do"
+>
     <div class="future-card-heading">
-        <span class="future-card-icon">🏋️</span>
+        <span class="future-card-icon">
+            <?= htmlspecialchars(
+                $todayChallenge['icon'],
+                ENT_QUOTES,
+                'UTF-8'
+            ) ?>
+        </span>
 
         <div>
             <p class="card-label">Do Something Today</p>
+
             <span class="future-card-category">
-                Approximately 8 minutes
+                <?= htmlspecialchars(
+                    $todayChallenge['category'],
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>
+                ·
+                <?= htmlspecialchars(
+                    $todayChallenge['time'],
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>
             </span>
         </div>
     </div>
 
-    <h2>Today’s Mini Strength Challenge</h2>
+    <h2>
+        Today’s
+        <?= htmlspecialchars(
+            $todayChallenge['title'],
+            ENT_QUOTES,
+            'UTF-8'
+        ) ?>
+    </h2>
 
     <p class="future-challenge-introduction">
-        Two rounds. Nothing complicated. Just show up and move.
+        <?= htmlspecialchars(
+            $todayChallenge['introduction'],
+            ENT_QUOTES,
+            'UTF-8'
+        ) ?>
     </p>
 
     <ol class="future-workout-list">
-        <li>
-            <strong>10</strong>
-            chair or bodyweight squats
-        </li>
-
-        <li>
-            <strong>10</strong>
-            wall or incline push-ups
-        </li>
-
-        <li>
-            <strong>10</strong>
-            dumbbell rows on each side
-        </li>
-
-        <li>
-            <strong>15</strong>
-            glute bridges
-        </li>
+        <?php foreach ($todayChallenge['exercises'] as $exercise): ?>
+            <li>
+                <?= htmlspecialchars(
+                    $exercise,
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>
+            </li>
+        <?php endforeach; ?>
     </ol>
 
     <div class="future-workout-rounds">
-        Repeat the list × 2
+        <?= htmlspecialchars(
+            $todayChallenge['finish'],
+            ENT_QUOTES,
+            'UTF-8'
+        ) ?>
     </div>
 
     <details class="future-safety-details">
@@ -207,7 +338,7 @@ require dirname(__DIR__) . '/includes/header.php';
 
         <p>
             Use a comfortable range of motion and stable support.
-            Stop if you feel pain, dizziness or unusual shortness
+            Stop if you feel pain, dizziness, or unusual shortness
             of breath.
         </p>
     </details>
@@ -228,7 +359,11 @@ require dirname(__DIR__) . '/includes/header.php';
         <strong>🔥 Present You just showed up.</strong>
 
         <p>
-            Future You approves. Go handle those eight minutes.
+            <?= htmlspecialchars(
+                $todayChallenge['confirmation'],
+                ENT_QUOTES,
+                'UTF-8'
+            ) ?>
         </p>
     </div>
 </section>
