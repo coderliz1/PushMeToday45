@@ -22,9 +22,37 @@ $pageTitle = $pageTitle ?? 'PushMeToday45';
                 PushMeToday<span>45</span>
             </a>
 
-            <span class="privacy-badge" aria-label="Private app">
-                Private
-            </span>
+                        <div class="app-header-actions">
+                <span
+                    class="privacy-badge"
+                    aria-label="Private app"
+                >
+                    Private
+                </span>
+
+                <form
+                    class="logout-form"
+                    method="post"
+                    action="/?page=logout"
+                >
+                    <input
+                        type="hidden"
+                        name="csrf_token"
+                        value="<?= htmlspecialchars(
+                            auth_csrf_token(),
+                            ENT_QUOTES,
+                            'UTF-8'
+                        ) ?>"
+                    >
+
+                    <button
+                        class="logout-button"
+                        type="submit"
+                    >
+                        Log Out
+                    </button>
+                </form>
+            </div>
         </header>
 
         <main class="app-content">

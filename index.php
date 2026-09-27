@@ -3,13 +3,24 @@
 declare(strict_types=1);
 
 header('X-Robots-Tag: noindex, nofollow', true);
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0', true);
+header(
+    'Cache-Control: no-store, no-cache, must-revalidate, max-age=0',
+    true
+);
 header('Pragma: no-cache', true);
 header('Expires: 0', true);
+header('Referrer-Policy: no-referrer', true);
 
-$page = $_GET['page'] ?? 'home';
+require_once __DIR__ . '/includes/auth.php';
+
+$page = trim(
+    (string) ($_GET['page'] ?? 'home')
+);
 
 $routes = [
+    'login' => 'login.php',
+    'verify-login' => 'verify-login.php',
+    'logout' => 'logout.php',
     'home' => 'home.php',
     'check-in' => 'check-in.php',
     'sos' => 'sos.php',
@@ -18,8 +29,22 @@ $routes = [
 ];
 
 if (!array_key_exists($page, $routes)) {
-    header('Location: /?page=home');
+    if (auth_is_authenticated()) {
+        header('Location: /?page=home');
+    } else {
+        header('Location: /?page=login');
+    }
+
     exit;
+}
+
+$publicPages = [
+    'login',
+    'verify-login',
+];
+
+if (!in_array($page, $publicPages, true)) {
+    auth_require_login();
 }
 
 require __DIR__ . '/pages/' . $routes[$page];

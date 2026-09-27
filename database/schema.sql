@@ -71,3 +71,52 @@ CREATE TABLE sos_interactions (
 ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS magic_link_tokens (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    token_hash CHAR(64) NOT NULL,
+    requester_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME DEFAULT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+    UNIQUE KEY unique_magic_token_hash (token_hash),
+    INDEX magic_token_expires (expires_at),
+    INDEX magic_token_requester (requester_hash, created_at)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS auth_sessions (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    token_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    last_used_at DATETIME NOT NULL,
+    revoked_at DATETIME DEFAULT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+    UNIQUE KEY unique_auth_session_hash (token_hash),
+    INDEX auth_session_expires (expires_at)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS auth_rate_events (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    event_type VARCHAR(30) NOT NULL,
+    requester_hash CHAR(64) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+    INDEX auth_rate_lookup (
+        event_type,
+        requester_hash,
+        created_at
+    )
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;

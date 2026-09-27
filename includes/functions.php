@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/phpmailer/Exception.php';
+require_once __DIR__ . '/phpmailer/PHPMailer.php';
+require_once __DIR__ . '/phpmailer/SMTP.php';
+
 function app_config(): array
 {
     static $config = null;
@@ -146,6 +150,91 @@ function openai_generate_text(
     );
 }
 
+
+function send_magic_link_email(
+    string $recipientEmail,
+    string $magicLink
+): void {
+    $config = app_config();
+
+    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+
+    $mail->isSMTP();
+    $mail->Host = (string) $config['smtp_host'];
+    $mail->Port = (int) $config['smtp_port'];
+    $mail->SMTPAuth = true;
+    $mail->Username = (string) $config['smtp_username'];
+    $mail->Password = (string) $config['smtp_password'];
+
+    if (($config['smtp_encryption'] ?? '') === 'tls') {
+        $mail->SMTPSecure =
+            \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+    } else {
+        $mail->SMTPSecure =
+            \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+    }
+
+    $mail->CharSet = 'UTF-8';
+
+    $mail->setFrom(
+        (string) $config['mail_from_email'],
+        (string) $config['mail_from_name']
+    );
+
+    $mail->addAddress($recipientEmail);
+
+    $safeMagicLink = htmlspecialchars(
+        $magicLink,
+        ENT_QUOTES,
+        'UTF-8'
+    );
+
+    $mail->isHTML(true);
+    $mail->Subject = 'Your PushMeToday45 login link';
+
+    $mail->Body = <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<body style="margin:0;padding:24px;background:#fff8fb;font-family:Arial,sans-serif;color:#24202a;">
+    <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:24px;padding:32px;box-shadow:0 12px 32px rgba(79,48,88,0.12);">
+        <h1 style="margin:0 0 16px;font-size:26px;">
+            PushMeToday45 🔥
+        </h1>
+
+        <p style="font-size:17px;line-height:1.6;">
+            Your secure login link is ready.
+        </p>
+
+        <p style="margin:28px 0;">
+            <a
+                href="{$safeMagicLink}"
+                style="display:inline-block;background:#8f3f84;color:#ffffff;text-decoration:none;font-weight:bold;padding:15px 24px;border-radius:999px;"
+            >
+                OPEN PUSHMETODAY45
+            </a>
+        </p>
+
+        <p style="font-size:14px;line-height:1.6;color:#655d69;">
+            This link expires in 15 minutes and can only be used once.
+        </p>
+
+        <p style="font-size:14px;line-height:1.6;color:#655d69;">
+            If you did not request this link, you can ignore this email.
+        </p>
+    </div>
+</body>
+</html>
+HTML;
+
+    $mail->AltBody =
+        "PushMeToday45\n\n" .
+        "Your secure login link is ready:\n" .
+        $magicLink . "\n\n" .
+        "This link expires in 15 minutes and can only be used once.\n\n" .
+        "If you did not request this link, you can ignore this email.";
+
+    $mail->send();
+}
 
 function db(): PDO
 {
