@@ -21,6 +21,7 @@ $progressPercent = 0;
 $daysRemaining = 0;
 $checkIns = [];
 $workoutCount = 0;
+$totalMovementMinutes = 0;
 $startingWeight = null;
 $latestWeight = null;
 $startingWaist = null;
@@ -30,17 +31,37 @@ $waistChange = null;
 $weightEntries = [];
 $chartPoints = [];
 
+$moodLabels = [
+    'great' => 'Great',
+    'good' => 'Good',
+    'okay' => 'Okay',
+    'rough' => 'Rough',
+    'struggling' => 'Rough',
+    'irritated' => 'Irritated',
+    'anxious_stressed' => 'Anxious / Stressed',
+    'tired' => 'Tired',
+];
+
 if ($challenge) {
     $timezone = new DateTimeZone('America/New_York');
     $today = new DateTimeImmutable('today', $timezone);
-    $startDate = new DateTimeImmutable($challenge['start_date'], $timezone);
-    $endDate = new DateTimeImmutable($challenge['end_date'], $timezone);
+    $startDate = new DateTimeImmutable(
+        $challenge['start_date'],
+        $timezone
+    );
+    $endDate = new DateTimeImmutable(
+        $challenge['end_date'],
+        $timezone
+    );
 
     $challengeName = $challenge['name'];
     $challengeSchedule =
-        $startDate->format('M j') . '–' . $endDate->format('M j, Y');
+        $startDate->format('M j') .
+        '–' .
+        $endDate->format('M j, Y');
 
-    $totalDays = (int) $startDate->diff($endDate)->format('%a') + 1;
+    $totalDays =
+        (int) $startDate->diff($endDate)->format('%a') + 1;
 
     if ($today < $startDate) {
         $elapsedDays = 0;
@@ -60,10 +81,24 @@ if ($challenge) {
     }
 
     $statement = db()->prepare(
-        'SELECT *
-         FROM check_ins
-         WHERE check_in_date BETWEEN :start_date AND :end_date
-         ORDER BY check_in_date ASC'
+        'SELECT
+            check_in.*,
+            COALESCE(
+                (
+                    SELECT mood_entry.mood
+                    FROM check_in_moods AS mood_entry
+                    WHERE mood_entry.check_in_id = check_in.id
+                    ORDER BY
+                        mood_entry.occurred_at DESC,
+                        mood_entry.id DESC
+                    LIMIT 1
+                ),
+                check_in.mood
+            ) AS display_mood
+         FROM check_ins AS check_in
+         WHERE check_in.check_in_date
+            BETWEEN :start_date AND :end_date
+         ORDER BY check_in.check_in_date ASC'
     );
 
     $statement->execute([
@@ -98,47 +133,85 @@ if ($challenge) {
 
             $latestWaist = $waist;
         }
-
-        if (!empty($checkIn['activities'])) {
-            $activities = array_map(
-                'trim',
-                explode(',', $checkIn['activities'])
-            );
-
-            $movementActivities = array_diff($activities, ['rest']);
-
-            if ($movementActivities !== []) {
-                $workoutCount++;
-            }
-        }
     }
 
-    if ($startingWeight !== null && $latestWeight !== null) {
+    $activityStatement = db()->prepare(
+        'SELECT
+            COUNT(*) AS activity_count,
+            COALESCE(SUM(activity.duration_minutes), 0)
+                AS movement_minutes
+         FROM check_in_activities AS activity
+         INNER JOIN check_ins AS check_in
+            ON check_in.id = activity.check_in_id
+         WHERE check_in.check_in_date
+            BETWEEN :start_date AND :end_date
+           AND activity.activity_type <> :rest_type'
+    );
+
+    $activityStatement->execute([
+        'start_date' => $challenge['start_date'],
+        'end_date' => $challenge['end_date'],
+        'rest_type' => 'rest_day',
+    ]);
+
+    $activityTotals = $activityStatement->fetch();
+
+    if ($activityTotals) {
+        $workoutCount =
+            (int) $activityTotals['activity_count'];
+
+        $totalMovementMinutes =
+            (int) $activityTotals['movement_minutes'];
+    }
+
+    if (
+        $startingWeight !== null &&
+        $latestWeight !== null
+    ) {
         $weightChange = $startingWeight - $latestWeight;
     }
 
-    if ($startingWaist !== null && $latestWaist !== null) {
+    if (
+        $startingWaist !== null &&
+        $latestWaist !== null
+    ) {
         $waistChange = $startingWaist - $latestWaist;
     }
 
     if ($weightEntries !== []) {
-        $weightValues = array_column($weightEntries, 'weight');
+        $weightValues = array_column(
+            $weightEntries,
+            'weight'
+        );
+
         $minimumWeight = min($weightValues);
         $maximumWeight = max($weightValues);
-        $weightRange = max(1, $maximumWeight - $minimumWeight);
+        $weightRange = max(
+            1,
+            $maximumWeight - $minimumWeight
+        );
+
         $entryCount = count($weightEntries);
 
         foreach ($weightEntries as $index => $entry) {
             $x = $entryCount === 1
                 ? 160
-                : 10 + (($index / ($entryCount - 1)) * 300);
+                : 10 + (
+                    ($index / ($entryCount - 1)) * 300
+                );
 
             $y = 130 - (
-                (($entry['weight'] - $minimumWeight) / $weightRange) * 110
+                (
+                    ($entry['weight'] - $minimumWeight)
+                    / $weightRange
+                ) * 110
             );
 
             $chartPoints[] = [
-                'coordinates' => round($x, 1) . ',' . round($y, 1),
+                'coordinates' =>
+                    round($x, 1) .
+                    ',' .
+                    round($y, 1),
                 'x' => round($x, 1),
                 'y' => round($y, 1),
                 'weight' => $entry['weight'],
@@ -156,7 +229,9 @@ require dirname(__DIR__) . '/includes/header.php';
 
 <section class="page-heading">
     <p class="eyebrow">Your progress</p>
+
     <h1>Look how far you’ve come.</h1>
+
     <p>
         Every entry tells part of the story. Checking in is optional;
         your progress still counts.
@@ -167,15 +242,25 @@ require dirname(__DIR__) . '/includes/header.php';
     <div class="challenge-heading">
         <div>
             <p class="card-label">
-                <?= htmlspecialchars($challengeName, ENT_QUOTES, 'UTF-8') ?>
+                <?= htmlspecialchars(
+                    $challengeName,
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>
             </p>
 
             <h2>
-                <?= htmlspecialchars($challengeSchedule, ENT_QUOTES, 'UTF-8') ?>
+                <?= htmlspecialchars(
+                    $challengeSchedule,
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>
             </h2>
         </div>
 
-        <div class="progress-number"><?= $progressPercent ?>%</div>
+        <div class="progress-number">
+            <?= $progressPercent ?>%
+        </div>
     </div>
 
     <div
@@ -197,13 +282,19 @@ require dirname(__DIR__) . '/includes/header.php';
     </p>
 </section>
 
-<section class="stats-grid" aria-label="Progress statistics">
+<section
+    class="stats-grid"
+    aria-label="Progress statistics"
+>
     <article class="stat-card stat-pink">
         <span class="stat-label">Weight Change</span>
 
         <strong>
             <?= $weightChange !== null
-                ? number_format(abs($weightChange), 1) . ' lb'
+                ? number_format(
+                    abs($weightChange),
+                    1
+                ) . ' lb'
                 : '—' ?>
         </strong>
 
@@ -225,7 +316,10 @@ require dirname(__DIR__) . '/includes/header.php';
 
         <strong>
             <?= $waistChange !== null
-                ? number_format(abs($waistChange), 1) . ' in'
+                ? number_format(
+                    abs($waistChange),
+                    1
+                ) . ' in'
                 : '—' ?>
         </strong>
 
@@ -243,15 +337,23 @@ require dirname(__DIR__) . '/includes/header.php';
     </article>
 
     <article class="stat-card stat-mint">
-        <span class="stat-label">Workouts</span>
+        <span class="stat-label">Activities</span>
+
         <strong><?= $workoutCount ?></strong>
-        <span class="stat-note">Logged this challenge</span>
+
+        <span class="stat-note">
+            <?= $totalMovementMinutes ?> min movement
+        </span>
     </article>
 
     <article class="stat-card stat-blue">
         <span class="stat-label">Check-Ins</span>
+
         <strong><?= count($checkIns) ?></strong>
-        <span class="stat-note">Optional progress entries</span>
+
+        <span class="stat-note">
+            Optional progress entries
+        </span>
     </article>
 </section>
 
@@ -279,7 +381,10 @@ require dirname(__DIR__) . '/includes/header.php';
                         points="<?= htmlspecialchars(
                             implode(
                                 ' ',
-                                array_column($chartPoints, 'coordinates')
+                                array_column(
+                                    $chartPoints,
+                                    'coordinates'
+                                )
                             ),
                             ENT_QUOTES,
                             'UTF-8'
@@ -301,8 +406,13 @@ require dirname(__DIR__) . '/includes/header.php';
                     >
                         <title>
                             <?= htmlspecialchars(
-                                $point['date'] . ': ' .
-                                number_format($point['weight'], 1) . ' lb',
+                                $point['date'] .
+                                ': ' .
+                                number_format(
+                                    $point['weight'],
+                                    1
+                                ) .
+                                ' lb',
                                 ENT_QUOTES,
                                 'UTF-8'
                             ) ?>
@@ -315,12 +425,22 @@ require dirname(__DIR__) . '/includes/header.php';
         <div class="chart-summary">
             <span>
                 Start:
-                <strong><?= number_format($startingWeight, 1) ?> lb</strong>
+                <strong>
+                    <?= number_format(
+                        $startingWeight,
+                        1
+                    ) ?> lb
+                </strong>
             </span>
 
             <span>
                 Latest:
-                <strong><?= number_format($latestWeight, 1) ?> lb</strong>
+                <strong>
+                    <?= number_format(
+                        $latestWeight,
+                        1
+                    ) ?> lb
+                </strong>
             </span>
         </div>
     <?php endif; ?>
@@ -341,30 +461,47 @@ require dirname(__DIR__) . '/includes/header.php';
     <?php else: ?>
         <div class="check-in-history">
             <?php foreach ($recentCheckIns as $checkIn): ?>
+                <?php
+                $displayMood = $checkIn['display_mood'];
+
+                $displayMoodLabel =
+                    $displayMood !== null
+                    ? (
+                        $moodLabels[$displayMood]
+                        ?? ucfirst(
+                            str_replace(
+                                '_',
+                                ' ',
+                                $displayMood
+                            )
+                        )
+                    )
+                    : 'No mood recorded';
+                ?>
+
                 <article class="history-entry">
                     <div>
                         <strong>
-                            <?= (new DateTimeImmutable(
-                                $checkIn['check_in_date']
-                            ))->format('M j, Y') ?>
+                            <?= (
+                                new DateTimeImmutable(
+                                    $checkIn['check_in_date']
+                                )
+                            )->format('M j, Y') ?>
                         </strong>
 
                         <span>
-                            <?= $checkIn['mood'] !== null
-                                ? ucfirst(
-                                    htmlspecialchars(
-                                        $checkIn['mood'],
-                                        ENT_QUOTES,
-                                        'UTF-8'
-                                    )
-                                )
-                                : 'No mood recorded' ?>
+                            <?= htmlspecialchars(
+                                $displayMoodLabel,
+                                ENT_QUOTES,
+                                'UTF-8'
+                            ) ?>
                         </span>
                     </div>
 
                     <div class="history-measurements">
                         <span>
                             Weight:
+
                             <strong>
                                 <?= $checkIn['weight'] !== null
                                     ? number_format(
@@ -377,6 +514,7 @@ require dirname(__DIR__) . '/includes/header.php';
 
                         <span>
                             Waist:
+
                             <strong>
                                 <?= $checkIn['waist'] !== null
                                     ? number_format(

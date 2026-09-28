@@ -3560,3 +3560,158 @@ html {
         padding-inline: 8px;
     }
 }
+
+/* ---------------------------------------------------------
+   Check-In: repeatable entries, summary, and timeline
+--------------------------------------------------------- */
+
+.check-in-form + .check-in-form,
+.form-card + .check-in-form {
+    margin-top: 16px;
+}
+
+.check-in-form .field-group select {
+    width: 100%;
+    min-height: 50px;
+    padding: 14px 42px 14px 15px;
+    color: var(--text);
+    background: #fcf9fd;
+    border: 1px solid #ded3e3;
+    border-radius: 14px;
+    outline: none;
+    font: inherit;
+    cursor: pointer;
+}
+
+.check-in-form .field-group select:focus {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 4px rgba(155, 110, 232, 0.12);
+}
+
+.check-in-form .mood-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.check-in-form .mood-choice {
+    min-height: 92px;
+    padding: 12px 8px;
+}
+
+.check-in-form .mood-choice > span:not(.mood-face) {
+    overflow: visible;
+    font-size: 0.72rem;
+    line-height: 1.25;
+    text-overflow: unset;
+    white-space: normal;
+}
+
+.form-card > .save-button {
+    margin-top: 20px;
+}
+
+.form-card .stats-grid {
+    margin-bottom: 0;
+}
+
+.form-card .stat-card {
+    min-height: 108px;
+}
+
+.timeline-card {
+    margin-top: 16px;
+}
+
+.timeline-empty {
+    margin: 0;
+    padding: 18px;
+    color: var(--muted);
+    background: #faf7fb;
+    border: 1px dashed #dfd4e4;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.today-timeline {
+    display: grid;
+    gap: 0;
+}
+
+.timeline-item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 70px 42px minmax(0, 1fr);
+    gap: 10px;
+    min-width: 0;
+    padding: 14px 0;
+}
+
+.timeline-item + .timeline-item {
+    border-top: 1px solid var(--border);
+}
+
+.timeline-time {
+    padding-top: 9px;
+    color: var(--muted);
+    font-size: 0.7rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.timeline-icon {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    background: var(--purple-light);
+    border: 1px solid #e1d4f6;
+    border-radius: 14px;
+    font-size: 1.15rem;
+}
+
+.timeline-content {
+    min-width: 0;
+    padding-top: 7px;
+}
+
+.timeline-content strong {
+    display: block;
+    font-size: 0.9rem;
+    line-height: 1.35;
+}
+
+.timeline-content > span {
+    display: block;
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.timeline-content p {
+    margin: 8px 0 0;
+    padding: 10px 12px;
+    color: #5f5267;
+    background: #faf7fb;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    font-style: italic;
+    line-height: 1.5;
+}
+
+@media (max-width: 380px) {
+    .timeline-item {
+        grid-template-columns: 60px 38px minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .timeline-icon {
+        width: 36px;
+        height: 36px;
+    }
+
+    .timeline-time {
+        font-size: 0.64rem;
+    }
+}

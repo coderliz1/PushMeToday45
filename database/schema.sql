@@ -120,3 +120,75 @@ CREATE TABLE IF NOT EXISTS auth_rate_events (
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;
+
+
+  CREATE TABLE IF NOT EXISTS check_in_activities (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    check_in_id INT UNSIGNED NOT NULL,
+    activity_type VARCHAR(30) NOT NULL,
+    duration_minutes SMALLINT UNSIGNED DEFAULT NULL,
+    note TEXT DEFAULT NULL,
+    occurred_at DATETIME NOT NULL,
+    legacy_check_in_id INT UNSIGNED DEFAULT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+    INDEX activity_check_in (check_in_id),
+    INDEX activity_occurred_at (occurred_at),
+    UNIQUE KEY unique_legacy_activity (
+        legacy_check_in_id,
+        activity_type
+    ),
+
+    CONSTRAINT fk_activity_check_in
+        FOREIGN KEY (check_in_id)
+        REFERENCES check_ins (id)
+        ON DELETE RESTRICT
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS check_in_moods (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    check_in_id INT UNSIGNED NOT NULL,
+    mood VARCHAR(30) NOT NULL,
+    note TEXT DEFAULT NULL,
+    occurred_at DATETIME NOT NULL,
+    legacy_check_in_id INT UNSIGNED DEFAULT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+    INDEX mood_check_in (check_in_id),
+    INDEX mood_occurred_at (occurred_at),
+    UNIQUE KEY unique_legacy_mood (legacy_check_in_id),
+
+    CONSTRAINT fk_mood_check_in
+        FOREIGN KEY (check_in_id)
+        REFERENCES check_ins (id)
+        ON DELETE RESTRICT
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS check_in_notes (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    check_in_id INT UNSIGNED NOT NULL,
+    note TEXT NOT NULL,
+    occurred_at DATETIME NOT NULL,
+    legacy_check_in_id INT UNSIGNED DEFAULT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+    INDEX note_check_in (check_in_id),
+    INDEX note_occurred_at (occurred_at),
+    UNIQUE KEY unique_legacy_note (legacy_check_in_id),
+
+    CONSTRAINT fk_note_check_in
+        FOREIGN KEY (check_in_id)
+        REFERENCES check_ins (id)
+        ON DELETE RESTRICT
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
