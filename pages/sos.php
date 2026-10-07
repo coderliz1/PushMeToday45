@@ -3,7 +3,7 @@
 $pageTitle = 'I Need Help | PushMeToday45';
 $activePage = 'sos';
 
-require_once dirname(__DIR__) . '/includes/functions.php';
+require_once dirname(__DIR__) . '/includes/challenges.php';
 
 $allowedCategories = [
     'cheat',
@@ -806,16 +806,25 @@ $scaleMeasurementCount = 0;
 $cycleMayAffectScale = false;
 
 if ($selectedCategory === 'scale') {
-    $scaleStatement = db()->query(
+    $scaleToday = new DateTimeImmutable('today', new DateTimeZone('America/New_York'));
+    $scaleChallengeId = challenge_id_for_date($scaleToday->format('Y-m-d'));
+    $scaleStatement = db()->prepare(
         'SELECT
             check_in_date,
             weight,
             period_status
          FROM check_ins
          WHERE weight IS NOT NULL
+           AND challenge_id <=> :challenge_id
+           AND check_in_date <= :today
          ORDER BY check_in_date DESC
          LIMIT 60'
     );
+
+    $scaleStatement->execute([
+        'challenge_id' => $scaleChallengeId,
+        'today' => $scaleToday->format('Y-m-d'),
+    ]);
 
     $scaleMeasurements = $scaleStatement->fetchAll();
     $scaleMeasurementCount = count($scaleMeasurements);
@@ -888,33 +897,23 @@ $resultsStrengthWorkouts = 0;
 $resultsCheckInCount = 0;
 
 if ($selectedCategory === 'results') {
-    $resultsChallenge = db()
-        ->query(
-            "SELECT *
-             FROM challenges
-             WHERE status = 'active'
-             ORDER BY start_date DESC
-             LIMIT 1"
-        )
-        ->fetch();
+    $resultsChallenge = challenge_current();
+    $timezone = new DateTimeZone('America/New_York');
+    $today = new DateTimeImmutable('today', $timezone);
+
+    // A scheduled challenge has no current results before its start date.
+    if (
+        $resultsChallenge !== null &&
+        $resultsChallenge['start_date'] > $today->format('Y-m-d')
+    ) {
+        $resultsChallenge = null;
+    }
 
     if ($resultsChallenge) {
         $resultsChallengeName = $resultsChallenge['name'];
-        $resultsTargetDays =
-            (int) $resultsChallenge['target_days'];
-
-        $timezone = new DateTimeZone('America/New_York');
-        $today = new DateTimeImmutable('today', $timezone);
-
-        $challengeStart = new DateTimeImmutable(
-            $resultsChallenge['start_date'],
-            $timezone
-        );
-
-        $challengeEnd = new DateTimeImmutable(
-            $resultsChallenge['end_date'],
-            $timezone
-        );
+        $challengeStart = challenge_calendar_date($resultsChallenge['start_date']);
+        $challengeEnd = challenge_calendar_date($resultsChallenge['end_date']);
+        $resultsTargetDays = (int) $challengeStart->diff($challengeEnd)->format('%a') + 1;
 
         if ($today < $challengeStart) {
             $resultsChallengeDay = 0;
@@ -936,17 +935,14 @@ if ($selectedCategory === 'results') {
             'SELECT
                 check_in_date,
                 weight,
-                waist,
-                activities
+                waist
              FROM check_ins
-             WHERE check_in_date
-                BETWEEN :start_date AND :end_date
+             WHERE challenge_id = :challenge_id
              ORDER BY check_in_date ASC'
         );
 
         $resultsStatement->execute([
-            'start_date' => $resultsChallenge['start_date'],
-            'end_date' => $resultsChallenge['end_date'],
+            'challenge_id' => (int) $resultsChallenge['id'],
         ]);
 
         $resultsCheckIns = $resultsStatement->fetchAll();
@@ -966,20 +962,21 @@ if ($selectedCategory === 'results') {
                     (float) $resultsCheckIn['waist'];
             }
 
-            $activities = array_filter(
-                array_map(
-                    'trim',
-                    explode(
-                        ',',
-                        (string) $resultsCheckIn['activities']
-                    )
-                )
-            );
-
-            if (in_array('strength', $activities, true)) {
-                $resultsStrengthWorkouts++;
-            }
         }
+
+        $strengthStatement = db()->prepare(
+            'SELECT COUNT(*)
+             FROM check_in_activities AS activity
+             INNER JOIN check_ins AS check_in
+                ON check_in.id = activity.check_in_id
+             WHERE check_in.challenge_id = :challenge_id
+               AND activity.activity_type = :activity_type'
+        );
+        $strengthStatement->execute([
+            'challenge_id' => (int) $resultsChallenge['id'],
+            'activity_type' => 'strength',
+        ]);
+        $resultsStrengthWorkouts = (int) $strengthStatement->fetchColumn();
 
         if (count($challengeWeights) >= 2) {
             $resultsWeightChange =

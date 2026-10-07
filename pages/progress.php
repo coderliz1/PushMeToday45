@@ -3,20 +3,45 @@
 $pageTitle = 'Progress | PushMeToday45';
 $activePage = 'progress';
 
-require_once dirname(__DIR__) . '/includes/functions.php';
+require_once dirname(__DIR__) . '/includes/challenges.php';
 
-$challenge = db()
-    ->query(
-        "SELECT *
-         FROM challenges
-         WHERE status = 'active'
-         ORDER BY start_date DESC
-         LIMIT 1"
-    )
-    ->fetch();
+$availableChallenges = db()->query(
+    "SELECT * FROM challenges
+     WHERE status IN ('upcoming', 'active', 'completed', 'archived')
+     ORDER BY start_date DESC, id DESC"
+)->fetchAll();
 
-$challengeName = 'No active challenge';
-$challengeSchedule = 'Choose dates to begin';
+$challenge = challenge_current();
+$selectionError = null;
+
+if (isset($_GET['challenge_id'])) {
+    $selectedId = filter_var(
+        $_GET['challenge_id'],
+        FILTER_VALIDATE_INT,
+        ['options' => ['min_range' => 1]]
+    );
+    $challenge = null;
+
+    if ($selectedId !== false) {
+        foreach ($availableChallenges as $availableChallenge) {
+            if ((int) $availableChallenge['id'] === $selectedId) {
+                $challenge = $availableChallenge;
+                break;
+            }
+        }
+    }
+
+    if ($challenge === null) {
+        $selectionError = 'That challenge could not be found. Please choose a challenge below.';
+    }
+} elseif ($challenge === null && $availableChallenges !== []) {
+    $challenge = $availableChallenges[0];
+}
+
+$progressCaption = 'Choose a challenge to see its progress.';
+
+$challengeName = 'No challenge selected';
+$challengeSchedule = 'Your challenge history';
 $progressPercent = 0;
 $daysRemaining = 0;
 $checkIns = [];
@@ -30,6 +55,7 @@ $weightChange = null;
 $waistChange = null;
 $weightEntries = [];
 $chartPoints = [];
+$waistEntryCount = 0;
 
 $moodLabels = [
     'great' => 'Great',
@@ -74,6 +100,16 @@ if ($challenge) {
 
     $daysRemaining = max(0, $totalDays - $elapsedDays);
 
+    if (in_array($challenge['status'], ['completed', 'archived'], true)) {
+        $progressCaption = 'Completed challenge — your recorded results are shown below.';
+    } elseif ($today < $startDate) {
+        $progressCaption = 'Your challenge begins ' . $startDate->format('M j, Y') . '.';
+    } elseif ($today > $endDate) {
+        $progressCaption = 'The scheduled dates have ended. This challenge remains open until you finish it.';
+    } else {
+        $progressCaption = $daysRemaining . ' calendar days remain.';
+    }
+
     if ($totalDays > 0) {
         $progressPercent = (int) round(
             ($elapsedDays / $totalDays) * 100
@@ -96,14 +132,12 @@ if ($challenge) {
                 check_in.mood
             ) AS display_mood
          FROM check_ins AS check_in
-         WHERE check_in.check_in_date
-            BETWEEN :start_date AND :end_date
+         WHERE check_in.challenge_id = :challenge_id
          ORDER BY check_in.check_in_date ASC'
     );
 
     $statement->execute([
-        'start_date' => $challenge['start_date'],
-        'end_date' => $challenge['end_date'],
+        'challenge_id' => (int) $challenge['id'],
     ]);
 
     $checkIns = $statement->fetchAll();
@@ -125,6 +159,7 @@ if ($challenge) {
         }
 
         if ($checkIn['waist'] !== null) {
+            $waistEntryCount++;
             $waist = (float) $checkIn['waist'];
 
             if ($startingWaist === null) {
@@ -143,14 +178,12 @@ if ($challenge) {
          FROM check_in_activities AS activity
          INNER JOIN check_ins AS check_in
             ON check_in.id = activity.check_in_id
-         WHERE check_in.check_in_date
-            BETWEEN :start_date AND :end_date
+         WHERE check_in.challenge_id = :challenge_id
            AND activity.activity_type <> :rest_type'
     );
 
     $activityStatement->execute([
-        'start_date' => $challenge['start_date'],
-        'end_date' => $challenge['end_date'],
+        'challenge_id' => (int) $challenge['id'],
         'rest_type' => 'rest_day',
     ]);
 
@@ -165,6 +198,7 @@ if ($challenge) {
     }
 
     if (
+        count($weightEntries) >= 2 &&
         $startingWeight !== null &&
         $latestWeight !== null
     ) {
@@ -172,6 +206,7 @@ if ($challenge) {
     }
 
     if (
+        $waistEntryCount >= 2 &&
         $startingWaist !== null &&
         $latestWaist !== null
     ) {
@@ -238,6 +273,40 @@ require dirname(__DIR__) . '/includes/header.php';
     </p>
 </section>
 
+<?php if ($availableChallenges !== []): ?>
+    <section class="progress-panel">
+        <form method="get" action="/">
+            <input type="hidden" name="page" value="progress">
+            <label for="progress-challenge">Choose a challenge</label>
+            <select id="progress-challenge" name="challenge_id">
+                <?php foreach ($availableChallenges as $availableChallenge): ?>
+                    <option
+                        value="<?= (int) $availableChallenge['id'] ?>"
+                        <?= $challenge !== null &&
+                            (int) $challenge['id'] === (int) $availableChallenge['id']
+                            ? 'selected' : '' ?>
+                    >
+                        <?= htmlspecialchars(
+                            $availableChallenge['name'] . ' · ' .
+                            $availableChallenge['start_date'] . '–' .
+                            $availableChallenge['end_date'] . ' · ' .
+                            ucfirst($availableChallenge['status']),
+                            ENT_QUOTES,
+                            'UTF-8'
+                        ) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <button type="submit">View Challenge</button>
+        </form>
+        <?php if ($selectionError !== null): ?>
+            <p role="alert">
+                <?= htmlspecialchars($selectionError, ENT_QUOTES, 'UTF-8') ?>
+            </p>
+        <?php endif; ?>
+    </section>
+<?php endif; ?>
+
 <section class="challenge-card">
     <div class="challenge-heading">
         <div>
@@ -278,7 +347,7 @@ require dirname(__DIR__) . '/includes/header.php';
     </div>
 
     <p class="progress-caption">
-        <?= $daysRemaining ?> calendar days remain.
+        <?= htmlspecialchars($progressCaption, ENT_QUOTES, 'UTF-8') ?>
     </p>
 </section>
 
