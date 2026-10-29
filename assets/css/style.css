@@ -3715,3 +3715,150 @@ html {
         font-size: 0.64rem;
     }
 }
+/* Challenge recap story cards */
+
+.challenge-recap {
+    margin: 24px 0;
+}
+
+.recap-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 360px;
+    padding: 28px 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-large);
+    background: var(--purple-light);
+    color: var(--text);
+    box-shadow: var(--shadow);
+    overflow-wrap: anywhere;
+}
+
+.recap-card[hidden] {
+    display: none;
+}
+
+.recap-card--pink {
+    background: var(--pink-light);
+}
+
+.recap-card--purple {
+    background: var(--purple-light);
+}
+
+.recap-card--mint {
+    background: var(--mint-light);
+}
+
+.recap-card--blue {
+    background: var(--blue-light);
+}
+
+.recap-eyebrow {
+    margin: 0 0 16px;
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.recap-card h2 {
+    margin: 0 0 16px;
+    font-size: clamp(1.8rem, 7vw, 2.6rem);
+    line-height: 1.15;
+}
+
+.recap-number {
+    display: block;
+    margin: 0 0 16px;
+    font-size: clamp(3rem, 14vw, 5rem);
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.recap-description {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.65;
+}
+
+.recap-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.recap-button,
+.recap-launch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 12px 20px;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: var(--text);
+    color: var(--surface);
+    font: inherit;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.recap-button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.recap-button:focus-visible,
+.recap-launch:focus-visible {
+    outline: 3px solid var(--text);
+    outline-offset: 4px;
+}
+
+.recap-counter {
+    color: var(--text);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.recap-summary {
+    display: grid;
+    gap: 12px;
+    margin: 12px 0 0;
+}
+
+.recap-summary div {
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--muted);
+}
+
+.recap-summary dt {
+    font-size: 0.95rem;
+}
+
+.recap-summary dd {
+    margin: 4px 0 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+@media (max-width: 380px) {
+    .recap-card {
+        min-height: 320px;
+        padding: 24px 18px;
+    }
+
+    .recap-controls {
+        gap: 8px;
+    }
+
+    .recap-button {
+        padding: 12px 16px;
+    }
+}
