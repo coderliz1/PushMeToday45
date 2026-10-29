@@ -340,3 +340,68 @@ function challenge_finish(int $challengeId): int
         }
     );
 }
+
+/**
+ * Determine today's application state from the stored challenge dates.
+ *
+ * An upcoming challenge becomes active by date automatically.
+ * Existing dates and database statuses are never changed here.
+ */
+function challenge_app_state(): array
+{
+    $today = new DateTimeImmutable(
+        'today',
+        new DateTimeZone('America/New_York')
+    );
+
+    $challenge = challenge_current();
+
+    if ($challenge === null) {
+        return [
+            'state' => 'between',
+            'challenge' => null,
+            'can_check_in' => false,
+            'days_until_start' => null,
+        ];
+    }
+
+    $startDate = challenge_calendar_date(
+        (string) $challenge['start_date']
+    );
+
+    $endDate = challenge_calendar_date(
+        (string) $challenge['end_date']
+    );
+
+    if ($endDate < $startDate) {
+        throw new RuntimeException(
+            'The challenge end date is before its start date.'
+        );
+    }
+
+    if ($today < $startDate) {
+        return [
+            'state' => 'upcoming',
+            'challenge' => $challenge,
+            'can_check_in' => false,
+            'days_until_start' =>
+                (int) $today->diff($startDate)->format('%a'),
+        ];
+    }
+
+    if ($today > $endDate) {
+        return [
+            'state' => 'awaiting_finish',
+            'challenge' => $challenge,
+            'can_check_in' => false,
+            'days_until_start' => null,
+        ];
+    }
+
+    return [
+        'state' => 'active',
+        'challenge' => $challenge,
+        'can_check_in' => true,
+        'days_until_start' => 0,
+    ];
+}
