@@ -22,6 +22,49 @@ $noteSuccess = false;
 
 $formAction = trim((string) ($_POST['form_action'] ?? ''));
 
+$checkInState = challenge_app_state();
+
+if (!$checkInState['can_check_in']) {
+    header('Location: /?page=home', true, 303);
+    exit;
+}
+
+$checkInChallenge = $checkInState['challenge'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $dateField = match ($formAction) {
+        'save_measurements' => 'check_in_date',
+        'log_activity', 'log_mood', 'add_note' => 'entry_date',
+        default => null,
+    };
+
+    if ($dateField !== null) {
+        $submittedDate = $_POST[$dateField] ?? null;
+        $entryDate = null;
+
+        if (is_string($submittedDate)) {
+            try {
+                $entryDate = challenge_calendar_date(trim($submittedDate));
+            } catch (InvalidArgumentException) {
+                // An invalid date must not reach a save handler.
+            }
+        }
+
+        $challengeStart = challenge_calendar_date($checkInChallenge['start_date']);
+        $challengeEnd = challenge_calendar_date($checkInChallenge['end_date']);
+
+        if (
+            $entryDate === null ||
+            $entryDate < $challengeStart ||
+            $entryDate > $challengeEnd ||
+            $entryDate > $todayDate
+        ) {
+            http_response_code(422);
+            exit('Nothing was saved. Go back and choose a date within your active challenge, no later than today.');
+        }
+    }
+}
+
 if (
 
     $_SERVER['REQUEST_METHOD'] === 'POST' &&
