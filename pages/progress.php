@@ -11,7 +11,14 @@ $availableChallenges = db()->query(
      ORDER BY start_date DESC, id DESC"
 )->fetchAll();
 
-$challenge = challenge_current();
+$progressState = challenge_app_state();
+$activeChallenge = $progressState['state'] === 'active'
+    ? $progressState['challenge']
+    : null;
+$showJourney = !isset($_GET['challenge_id']) && (
+    $activeChallenge === null || ($_GET['view'] ?? '') === 'journey'
+);
+$challenge = $showJourney ? null : $activeChallenge;
 $selectionError = null;
 
 if (isset($_GET['challenge_id'])) {
@@ -34,8 +41,6 @@ if (isset($_GET['challenge_id'])) {
     if ($challenge === null) {
         $selectionError = 'That challenge could not be found. Please choose a challenge below.';
     }
-} elseif ($challenge === null && $availableChallenges !== []) {
-    $challenge = $availableChallenges[0];
 }
 
 $progressCaption = 'Choose a challenge to see its progress.';
@@ -385,27 +390,144 @@ if ($showRecap) {
 
 $recentCheckIns = array_reverse($checkIns);
 
+$completedChallenges = [];
+$journeyTotals = [
+    'challenges' => 0,
+    'calendar_days' => 0,
+    'movement_minutes' => 0,
+    'strength_sessions' => 0,
+];
+
+if ($showJourney) {
+    // Each activity is counted once. Calendar days come from challenge dates,
+    // independently of the number of daily records or activities.
+    $completedChallenges = db()->query(
+        "SELECT ch.id, ch.name, ch.start_date, ch.end_date,
+                DATEDIFF(ch.end_date, ch.start_date) + 1 AS calendar_days,
+                (SELECT COUNT(*) FROM check_ins AS daily
+                 WHERE daily.challenge_id = ch.id) AS check_in_days,
+                (SELECT COUNT(*) FROM check_in_activities AS activity
+                 INNER JOIN check_ins AS daily ON daily.id = activity.check_in_id
+                 WHERE daily.challenge_id = ch.id
+                   AND activity.activity_type <> 'rest_day') AS activity_count,
+                (SELECT COALESCE(SUM(activity.duration_minutes), 0)
+                 FROM check_in_activities AS activity
+                 INNER JOIN check_ins AS daily ON daily.id = activity.check_in_id
+                 WHERE daily.challenge_id = ch.id
+                   AND activity.activity_type <> 'rest_day') AS movement_minutes,
+                (SELECT COUNT(*) FROM check_in_activities AS activity
+                 INNER JOIN check_ins AS daily ON daily.id = activity.check_in_id
+                 WHERE daily.challenge_id = ch.id
+                   AND activity.activity_type = 'strength') AS strength_sessions
+         FROM challenges AS ch
+         WHERE ch.status IN ('completed', 'archived')
+         ORDER BY ch.end_date DESC, ch.id DESC"
+    )->fetchAll();
+
+    $journeyTotals['challenges'] = count($completedChallenges);
+    foreach ($completedChallenges as $completedChallenge) {
+        foreach (['calendar_days', 'movement_minutes', 'strength_sessions'] as $field) {
+            $journeyTotals[$field] += (int) $completedChallenge[$field];
+        }
+    }
+}
+
 require dirname(__DIR__) . '/includes/header.php';
 
 ?>
 
 <section class="page-heading">
-    <p class="eyebrow">Your progress</p>
-
-    <h1>Look how far you’ve come.</h1>
-
+    <p class="eyebrow"><?= $showJourney ? '🏆 Your PushMeToday45 journey' : 'Your progress' ?></p>
+    <h1><?= $showJourney ? 'Every chapter counts.' : 'Look how far you’ve come.' ?></h1>
     <p>
-        Every entry tells part of the story. Checking in is optional;
-        your progress still counts.
+        <?= $showJourney
+            ? 'Your completed challenges, the movement you recorded, and the stories worth revisiting.'
+            : 'Every entry tells part of the story. Checking in is optional; your progress still counts.' ?>
     </p>
 </section>
+
+<section class="progress-panel" aria-label="Progress views">
+    <?php if (!$showJourney): ?>
+        <a class="recap-launch" href="/?page=progress&amp;view=journey">View Overall Journey</a>
+    <?php endif; ?>
+    <?php if ($activeChallenge !== null && ($showJourney || $challenge === null || (int) $challenge['id'] !== (int) $activeChallenge['id'])): ?>
+        <p><a href="/?page=progress">Back to Current Challenge →</a></p>
+    <?php endif; ?>
+    <?php if ($activeChallenge === null && $progressState['state'] === 'upcoming'): ?>
+        <p class="progress-caption">
+            Your next challenge starts
+            <?= challenge_calendar_date($progressState['challenge']['start_date'])->format('M j, Y') ?>.
+            Its results will appear once it begins.
+        </p>
+    <?php elseif ($activeChallenge === null && $progressState['state'] === 'awaiting_finish'): ?>
+        <p class="progress-caption">Your latest challenge is awaiting Finish. It will join these completed totals after you finish it on Home.</p>
+        <p><a href="/?page=home">Go to Home →</a></p>
+    <?php endif; ?>
+</section>
+
+<?php if ($showJourney): ?>
+    <section class="stats-grid" aria-label="Completed challenge journey totals">
+        <article class="stat-card stat-pink">
+            <span class="stat-label">Challenges Completed</span>
+            <strong><?= number_format($journeyTotals['challenges']) ?></strong>
+            <span class="stat-note">Your finished chapters</span>
+        </article>
+        <article class="stat-card stat-purple">
+            <span class="stat-label">Challenge Days</span>
+            <strong><?= number_format($journeyTotals['calendar_days']) ?></strong>
+            <span class="stat-note">Full calendar duration of completed challenges</span>
+        </article>
+        <article class="stat-card stat-mint">
+            <span class="stat-label">Movement Minutes</span>
+            <strong><?= number_format($journeyTotals['movement_minutes']) ?></strong>
+            <span class="stat-note">Recorded in completed challenges</span>
+        </article>
+        <article class="stat-card stat-blue">
+            <span class="stat-label">Strength Sessions</span>
+            <strong><?= number_format($journeyTotals['strength_sessions']) ?></strong>
+            <span class="stat-note">Logged strength activities</span>
+        </article>
+    </section>
+
+    <section class="progress-panel" aria-labelledby="journey-history-heading">
+        <p class="card-label">Your history</p>
+        <h2 id="journey-history-heading">Your challenges</h2>
+        <p class="progress-caption">Totals include completed challenges and their archived history. Current and scheduled challenges are excluded. Challenge Days count calendar days, whether or not you logged an entry.</p>
+        <?php if ($completedChallenges === []): ?>
+            <p class="empty-state">Your first completed challenge will appear here. Every chapter starts somewhere.</p>
+        <?php else: ?>
+            <div class="check-in-history">
+                <?php foreach ($completedChallenges as $completedChallenge): ?>
+                    <?php
+                    $historyStart = challenge_calendar_date($completedChallenge['start_date']);
+                    $historyEnd = challenge_calendar_date($completedChallenge['end_date']);
+                    $historySchedule = $historyStart->format('M j, Y') . '–' . $historyEnd->format('M j, Y');
+                    ?>
+                    <article class="stat-card stat-purple">
+                        <h3>🏆 Challenge #<?= (int) $completedChallenge['id'] ?> ✓</h3>
+                        <p><?= htmlspecialchars($historySchedule, ENT_QUOTES, 'UTF-8') ?></p>
+                        <dl class="recap-summary">
+                            <div><dt>Challenge Days</dt><dd><?= (int) $completedChallenge['calendar_days'] ?></dd></div>
+                            <div><dt>Days Checked In</dt><dd><?= (int) $completedChallenge['check_in_days'] ?></dd></div>
+                            <div><dt>Activities</dt><dd><?= number_format((int) $completedChallenge['activity_count']) ?></dd></div>
+                            <div><dt>Movement Minutes</dt><dd><?= number_format((int) $completedChallenge['movement_minutes']) ?></dd></div>
+                            <div><dt>Strength Sessions</dt><dd><?= number_format((int) $completedChallenge['strength_sessions']) ?></dd></div>
+                        </dl>
+                        <p><a class="recap-launch" href="/?page=progress&amp;challenge_id=<?= (int) $completedChallenge['id'] ?>&amp;recap=1#challenge-recap">View Full Recap →</a></p>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </section>
+<?php endif; ?>
 
 <?php if ($availableChallenges !== []): ?>
     <section class="progress-panel">
         <form method="get" action="/">
             <input type="hidden" name="page" value="progress">
             <label for="progress-challenge">Choose a challenge</label>
-            <select id="progress-challenge" name="challenge_id">
+            <select id="progress-challenge" name="challenge_id" required>
+                <option value="" disabled <?= $challenge === null ? 'selected' : '' ?>>Choose a challenge</option>
                 <?php foreach ($availableChallenges as $availableChallenge): ?>
                     <option
                         value="<?= (int) $availableChallenge['id'] ?>"
@@ -467,6 +589,7 @@ require dirname(__DIR__) . '/includes/header.php';
                                 </div>
                             <?php endforeach; ?>
                         </dl>
+                        <p><a href="/?page=progress&amp;view=journey">Back to Overall Journey →</a></p>
                         <p><a href="/?page=home">Back to Home →</a></p>
                     <?php endif; ?>
                 </article>
@@ -527,6 +650,7 @@ require dirname(__DIR__) . '/includes/header.php';
     </script>
 <?php endif; ?>
 
+<?php if ($challenge !== null): ?>
 <section class="challenge-card">
     <div class="challenge-heading">
         <div>
@@ -819,5 +943,7 @@ require dirname(__DIR__) . '/includes/header.php';
         </div>
     <?php endif; ?>
 </section>
+
+<?php endif; ?>
 
 <?php require dirname(__DIR__) . '/includes/footer.php'; ?>
