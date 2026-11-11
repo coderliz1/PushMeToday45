@@ -399,9 +399,12 @@ if (
 
     if ($errors === []) {
 
+        $connection = null;
+
         try {
 
             $connection = db();
+            $connection->beginTransaction();
 
             $activityChallengeId = challenge_id_for_date($activityDate);
 
@@ -481,9 +484,15 @@ if (
 
             ]);
 
+            $connection->commit();
+
             $activitySuccess = true;
 
         } catch (Throwable $exception) {
+            if ($connection instanceof PDO && $connection->inTransaction()) {
+                $connection->rollBack();
+            }
+
 
             error_log($exception->getMessage());
 
@@ -575,9 +584,12 @@ if (
 
     if ($errors === []) {
 
+        $connection = null;
+
         try {
 
             $connection = db();
+            $connection->beginTransaction();
 
 
 $moodChallengeId = challenge_id_for_date($moodDate);
@@ -676,9 +688,15 @@ $checkInId = (int) $connection->lastInsertId();
 
             ]);
 
+            $connection->commit();
+
             $moodSuccess = true;
 
         } catch (Throwable $exception) {
+            if ($connection instanceof PDO && $connection->inTransaction()) {
+                $connection->rollBack();
+            }
+
 
             error_log($exception->getMessage());
 
@@ -744,9 +762,12 @@ if (
 
     if ($errors === []) {
 
+        $connection = null;
+
         try {
 
             $connection = db();
+            $connection->beginTransaction();
 
             $noteChallengeId = challenge_id_for_date($noteDate);
 
@@ -810,9 +831,15 @@ if (
 
             ]);
 
+            $connection->commit();
+
             $noteSuccess = true;
 
         } catch (Throwable $exception) {
+            if ($connection instanceof PDO && $connection->inTransaction()) {
+                $connection->rollBack();
+            }
+
 
             error_log($exception->getMessage());
 
