@@ -799,15 +799,24 @@ if ($selectedCategory === 'results') {
 }
 
 
+// Use the same date-based active state as Home and Check-In.
+$sosActiveChallenge = null;
+if (in_array($selectedCategory, ['scale', 'results'], true)) {
+    $sosChallengeState = challenge_app_state();
+    if ($sosChallengeState['state'] === 'active') {
+        $sosActiveChallenge = $sosChallengeState['challenge'];
+    }
+}
+
 $latestScaleDate = null;
 $latestScaleChange = null;
 $sevenDayWeightTrend = null;
 $scaleMeasurementCount = 0;
 $cycleMayAffectScale = false;
 
-if ($selectedCategory === 'scale') {
+if ($selectedCategory === 'scale' && $sosActiveChallenge !== null) {
     $scaleToday = new DateTimeImmutable('today', new DateTimeZone('America/New_York'));
-    $scaleChallengeId = challenge_id_for_date($scaleToday->format('Y-m-d'));
+    $scaleChallengeId = (int) $sosActiveChallenge['id'];
     $scaleStatement = db()->prepare(
         'SELECT
             check_in_date,
@@ -815,7 +824,7 @@ if ($selectedCategory === 'scale') {
             period_status
          FROM check_ins
          WHERE weight IS NOT NULL
-           AND challenge_id <=> :challenge_id
+           AND challenge_id = :challenge_id
            AND check_in_date <= :today
          ORDER BY check_in_date DESC
          LIMIT 60'
@@ -897,17 +906,9 @@ $resultsStrengthWorkouts = 0;
 $resultsCheckInCount = 0;
 
 if ($selectedCategory === 'results') {
-    $resultsChallenge = challenge_current();
+    $resultsChallenge = $sosActiveChallenge;
     $timezone = new DateTimeZone('America/New_York');
     $today = new DateTimeImmutable('today', $timezone);
-
-    // A scheduled challenge has no current results before its start date.
-    if (
-        $resultsChallenge !== null &&
-        $resultsChallenge['start_date'] > $today->format('Y-m-d')
-    ) {
-        $resultsChallenge = null;
-    }
 
     if ($resultsChallenge) {
         $resultsChallengeName = $resultsChallenge['name'];
@@ -1266,8 +1267,12 @@ require dirname(__DIR__) . '/includes/header.php';
             <p class="card-label">No Active Challenge</p>
 
             <p class="sos-intervention-text">
-                There is no active challenge available to calculate
-                right now.
+                You are between active challenges. SOS is still here
+                whenever you need a push. Your completed results are
+                available in Overall Journey.
+            </p>
+            <p>
+                <a href="/?page=progress&amp;view=journey">View Overall Journey →</a>
             </p>
         </section>
 
@@ -1442,6 +1447,7 @@ require dirname(__DIR__) . '/includes/header.php';
         <?php endif; ?>
     </section>
 
+    <?php if ($sosActiveChallenge !== null): ?>
     <section class="sos-scale-grid">
         <article class="sos-scale-stat sos-scale-latest">
             <span>Latest change</span>
@@ -1481,6 +1487,18 @@ require dirname(__DIR__) . '/includes/header.php';
             </small>
         </article>
     </section>
+
+    <?php else: ?>
+        <section class="sos-intervention-card sos-action-card">
+            <p class="card-label">Support between challenges</p>
+            <p class="sos-intervention-text">
+                No active challenge measurements to compare right now.
+                You can still use every SOS option. Your completed
+                challenge results are waiting in Overall Journey.
+            </p>
+            <p><a href="/?page=progress&amp;view=journey">View Overall Journey →</a></p>
+        </section>
+    <?php endif; ?>
 
     <section class="sos-intervention-card sos-ai-card">
         <p class="card-label">Your Push</p>
